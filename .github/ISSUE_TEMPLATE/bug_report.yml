@@ -1,0 +1,162 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in MacDNS
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Before submitting
+        - Search [existing issues](https://github.com/MacDNS-app/macdns/issues) to avoid duplicates
+        - Make sure you're using the [latest version](https://github.com/MacDNS-app/macdns/releases/latest)
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of the bug
+      placeholder: What happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this issue?
+      placeholder: |
+        1. Open MacDNS
+        2. Click on '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+    validations:
+      required: true
+
+  - type: input
+    id: macdns-version
+    attributes:
+      label: MacDNS Version
+      description: Found in MacDNS menu bar → About
+      placeholder: "e.g., 1.2.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: architecture
+    attributes:
+      label: Mac Architecture
+      options:
+        - Apple Silicon (M1/M2/M3/M4)
+        - Intel
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostic Information
+      description: |
+        Please run the following commands in Terminal and paste the output.
+        This helps us understand your system configuration.
+      placeholder: |
+        Paste the output of the diagnostic commands here...
+      render: shell
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        ### How to Collect Diagnostic Information
+
+        Open **Terminal** (Applications → Utilities → Terminal) and run these commands:
+
+        ---
+
+        #### 1. System Extension Status
+        Check if the MacDNS network extension is properly installed and authorized:
+        ```bash
+        systemextensionsctl list 2>&1 | grep -i macdns || echo "No MacDNS extension found"
+        ```
+
+        **Expected output:** You should see an entry with `[activated enabled]` status.
+
+        ---
+
+        #### 2. Launch Agents Status
+        Check if MacDNS background services are running:
+        ```bash
+        launchctl list 2>&1 | grep -i macdns || echo "No MacDNS agents found"
+        ```
+
+        ---
+
+        #### 3. DNS Configuration
+        Check current DNS settings:
+        ```bash
+        scutil --dns | head -50
+        ```
+
+        ---
+
+        #### 4. Network Extension Permissions
+        Check if Network Extensions are allowed in System Settings:
+        ```bash
+        # List all network extensions
+        /usr/bin/profiles -C -v 2>&1 | grep -A5 -i "network" || echo "No profiles found"
+        ```
+
+        ---
+
+        #### 5. Recent MacDNS Logs (Last 5 minutes)
+        Collect recent log entries:
+        ```bash
+        log show --predicate 'subsystem BEGINSWITH "app.macdns"' --info --debug --last 15m --style compact
+        ```
+
+        ---
+
+        #### 6. DNS Resolution Test
+        Test if DNS is working through MacDNS:
+        ```bash
+        # Test a MacDNS probe (should return REFUSED)
+        dig @127.0.0.1 -p 5335 _probe.macdns
+
+        # Test a normal domain (should succeed)
+        dig @127.0.0.1 -p 5335 apple.com
+        ```
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Additional Logs or Screenshots
+      description: If relevant, add screenshots or additional log output
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing issues and this is not a duplicate
+          required: true
+        - label: I am using the latest version of MacDNS
+          required: true
+        - label: I have included diagnostic information (if applicable)
+          required: false
