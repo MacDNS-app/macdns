@@ -1,0 +1,14 @@
+<?xml version="1.0" standalone="yes"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>MacDNS</title>
+        <item>
+            <title>1.1.8</title>
+            <pubDate>Sun, 28 Dec 2025 12:28:30 -0300</pubDate>
+            <sparkle:version>1.1.8</sparkle:version>
+            <sparkle:shortVersionString>1.1.8</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/MacDNS-app/macdns/releases/download/v1.1.8/MacDNS.dmg" length="34836243" type="application/octet-stream" sparkle:edSignature="udlUWNmV/Z8n7K7s5vAPIAX7iZTcYmE6sZfuf8sGvsJWKnbnkNW9HDsz/LFEvdZ64U+7zbB4UTuwVgW9sTsmBQ=="/>
+        </item>
+    </channel>
+</rss>
