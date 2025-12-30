@@ -8,7 +8,7 @@ Native DNS security for macOS. Block ads, malware, and trackers at the DNS level
 
 | Requirement | Supported |
 |-------------|-----------|
-| macOS | 13.0+ (Ventura) |
+| macOS | 14.0+ (Sonoma) |
 | Architecture | Apple Silicon & Intel |
 
 ## Features
