@@ -44,4 +44,4 @@ MacDNS is proprietary software. See [Terms of Use](https://macdns.app/terms) for
 
 Each license is valid for up to 2 Macs. 30-day money-back guarantee.
 
-© 2025 MacDNS
+© 2025-2026 MacDNS
