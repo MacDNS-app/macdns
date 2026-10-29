@@ -3,12 +3,12 @@
     <channel>
         <title>MacDNS</title>
         <item>
-            <title>2.1.2</title>
-            <pubDate>Thu, 22 Oct 2026 21:42:33 -0300</pubDate>
-            <sparkle:version>2.1.2</sparkle:version>
-            <sparkle:shortVersionString>2.1.2</sparkle:shortVersionString>
+            <title>2.2.0</title>
+            <pubDate>Wed, 28 Oct 2026 21:22:31 -0300</pubDate>
+            <sparkle:version>2.2.0</sparkle:version>
+            <sparkle:shortVersionString>2.2.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/MacDNS-app/macdns/releases/download/v2.1.2/MacDNS.dmg" length="15867423" type="application/octet-stream" sparkle:edSignature="/nQXKzcvQ1YkZ6zEiYEOw0OC6dT6O5Vm6wwp1e/vHAs92Lri0ONuOCdYMAFKzDp8RxdJqIoSvSWOEGD6Tz8oDw=="/>
+            <enclosure url="https://github.com/MacDNS-app/macdns/releases/download/v2.2.0/MacDNS.dmg" length="15917413" type="application/octet-stream" sparkle:edSignature="I6WkRZpEGfRDTQ5dBA/AJ1qL0M0VgOOgi1eg0s3FmZV0jkJqYgW75btNSQq69fSfq1wdKQH25UCNgrG06iATAg=="/>
         </item>
     </channel>
 </rss>
