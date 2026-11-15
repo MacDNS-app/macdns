@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Network Extension capability (required to manage DNS Proxy and Content Filter System Extensions) -->
+    <key>com.apple.developer.networking.networkextension</key>
+    <array>
+        <string>dns-proxy-systemextension</string>
+        <string>content-filter-provider-systemextension</string>
+    </array>
+
+    <!-- Required to activate System Extensions -->
+    <key>com.apple.developer.system-extension.install</key>
+    <true/>
+
+    <!-- Sandbox is disabled for the Developer ID distribution -->
+    <key>com.apple.security.app-sandbox</key>
+    <false/>
+
+    <!-- Network client access -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+
+    <!-- Network server access (for XPC communication) -->
+    <key>com.apple.security.network.server</key>
+    <true/>
+</dict>
+</plist>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>app.macdns.contentfilter</string>
+    <key>CFBundleName</key>
+    <string>MacDNS Content Filter</string>
+    <key>CFBundleDisplayName</key>
+    <string>MacDNS Content Filter</string>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
+    <key>CFBundleExecutable</key>
+    <string>app.macdns.contentfilter</string>
+    <key>CFBundleVersion</key>
+    <string>@@BUILD_NUMBER@@</string>
+    <key>CFBundleShortVersionString</key>
+    <string>@@VERSION@@</string>
+    <key>CFBundlePackageType</key>
+    <string>SYSX</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <key>NSExtension</key>
+    <dict>
+        <key>NSExtensionPointIdentifier</key>
+        <string>com.apple.networkextension.filter-data</string>
+        <key>NSExtensionPrincipalClass</key>
+        <string>ContentFilterProvider</string>
+    </dict>
+    <key>NetworkExtension</key>
+    <dict>
+        <key>NEProviderClasses</key>
+        <dict>
+            <key>com.apple.networkextension.filter-data</key>
+            <string>ContentFilterProvider</string>
+        </dict>
+    </dict>
+    <key>NSSystemExtensionUsageDescription</key>
+    <string>MacDNS Content Filter blocks DNS over HTTPS (DoH) and DNS over TLS (DoT) to prevent DNS bypass.</string>
+</dict>
+</plist>

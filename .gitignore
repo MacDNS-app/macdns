@@ -1,0 +1,13 @@
+.claude
+.worktrees
+.build
+build
+Staging
+Output
+*.pkg
+Sources/MacDNS/Generated
+Icons/Assets.xcassets
+Icons/.assets.stamp
+.DS_Store
+.env
+.superpowers/

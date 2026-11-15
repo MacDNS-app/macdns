@@ -1,0 +1,14 @@
+# Licenses accepted for crates linked into libmacdns_resolver.dylib. Build and
+# dev dependencies never ship, and the resolver crate itself is FCL-1.0-ALv2.
+accepted = [
+    "Apache-2.0",
+    "BSD-3-Clause",
+    "ISC",
+    "MIT",
+    "Unicode-3.0",
+    "Zlib",
+]
+targets = ["aarch64-apple-darwin", "x86_64-apple-darwin"]
+ignore-build-dependencies = true
+ignore-dev-dependencies = true
+private = { ignore = true }

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- App Group authorizes lookup of the DNS Proxy control-plane Mach service
+         (group.app.macdns.proxy-control) that the extension vends via
+         NEMachServiceName. The client (this agent) must share the group or the
+         Mach namespace lookup fails with "Couldn't communicate with a helper
+         application" and the proxy is stuck in bypass. No shared files. -->
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>group.app.macdns</string>
+    </array>
+</dict>
+</plist>

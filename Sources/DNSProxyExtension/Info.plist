@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>app.macdns.dnsproxy</string>
+    <key>CFBundleName</key>
+    <string>MacDNS DNS Proxy</string>
+    <key>CFBundleDisplayName</key>
+    <string>MacDNS DNS Proxy</string>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
+    <key>CFBundleExecutable</key>
+    <string>app.macdns.dnsproxy</string>
+    <key>CFBundleVersion</key>
+    <string>@@BUILD_NUMBER@@</string>
+    <key>CFBundleShortVersionString</key>
+    <string>@@VERSION@@</string>
+    <key>CFBundlePackageType</key>
+    <string>SYSX</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <key>NSExtension</key>
+    <dict>
+        <key>NSExtensionPointIdentifier</key>
+        <string>com.apple.networkextension.dns-proxy</string>
+        <key>NSExtensionPrincipalClass</key>
+        <string>DNSProxyProvider</string>
+    </dict>
+    <key>NetworkExtension</key>
+    <dict>
+        <key>NEMachServiceName</key>
+        <string>group.app.macdns.proxy-control</string>
+        <key>NEProviderClasses</key>
+        <dict>
+            <key>com.apple.networkextension.dns-proxy</key>
+            <string>DNSProxyProvider</string>
+        </dict>
+    </dict>
+    <key>NSSystemExtensionUsageDescription</key>
+    <string>MacDNS DNS Proxy intercepts DNS queries and routes them through a secure local resolver.</string>
+</dict>
+</plist>

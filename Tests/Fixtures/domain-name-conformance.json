@@ -1,0 +1,299 @@
+{
+  "comment": [
+    "Cross-language conformance vectors for DNS name validation.",
+    "Consumed by Tests/MacDNSTests/DomainNameConformanceTests.swift and by the",
+    "conformance module in rust-resolver/crates/macdns-resolver/src/domain_name.rs.",
+    "owners: DNSPolicySemanticPolicy.canonicalName / domain_name::canonicalize.",
+    "owners.role: override (override owner) or forwardZone (forward-zone apex).",
+    "targets: DNSPolicySemanticPolicy.targetNameRejection / hickory Name::from_str.",
+    "forwardTargets: DNSResolverAddressParser / zones::validate_forward_target.",
+    "Contract both suites assert: whenever swift.accept is true, rust.accept must",
+    "be true and the canonical forms must be identical. Swift is allowed to be",
+    "stricter — a name the App refuses can never reach state.json — but a name the",
+    "App accepts and the resolver rejects blocks the whole policy snapshot."
+  ],
+  "owners": [
+    {
+      "input": "corp.example",
+      "role": "override",
+      "swift": { "accept": true, "canonical": "corp.example" },
+      "rust": { "accept": true, "canonical": "corp.example" }
+    },
+    {
+      "input": "CORP.Example.",
+      "role": "override",
+      "swift": { "accept": true, "canonical": "corp.example" },
+      "rust": { "accept": true, "canonical": "corp.example" }
+    },
+    {
+      "input": "münchen.de",
+      "role": "override",
+      "swift": { "accept": true, "canonical": "xn--mnchen-3ya.de" },
+      "rust": { "accept": true, "canonical": "xn--mnchen-3ya.de" }
+    },
+    {
+      "input": "xn--mnchen-3ya.de",
+      "role": "override",
+      "swift": { "accept": true, "canonical": "xn--mnchen-3ya.de" },
+      "rust": { "accept": true, "canonical": "xn--mnchen-3ya.de" }
+    },
+    {
+      "note": "DNS-017: UTS-46 width mapping. Swift refuses instead of encoding a label the resolver folds onto a.example.",
+      "input": "Ａ.example",
+      "role": "override",
+      "swift": { "accept": false, "canonical": null },
+      "rust": { "accept": true, "canonical": "a.example" }
+    },
+    {
+      "note": "DNS-017: fullwidth digit TLD. The resolver maps it to 1 and refuses a purely numeric TLD.",
+      "input": "example.１",
+      "role": "override",
+      "swift": { "accept": false, "canonical": null },
+      "rust": { "accept": false, "canonical": null }
+    },
+    {
+      "note": "DNS-017: the input starts with U+212A KELVIN SIGN, not ASCII K; the resolver folds it to plain k.",
+      "input": "K.example",
+      "role": "override",
+      "swift": { "accept": false, "canonical": null },
+      "rust": { "accept": true, "canonical": "k.example" }
+    },
+    {
+      "note": "DNS-018: 253 textual octets is 255 on the wire — the last name that still fits.",
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "role": "forwardZone",
+      "swift": { "accept": true, "canonical": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd" },
+      "rust": { "accept": true, "canonical": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd" }
+    },
+    {
+      "note": "DNS-018: 254 textual octets is 256 on the wire.",
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "role": "forwardZone",
+      "swift": { "accept": false, "canonical": null },
+      "rust": { "accept": false, "canonical": null }
+    },
+    {
+      "note": "DNS-018: the wildcard label costs two octets, so 251 base octets is the boundary.",
+      "input": "*.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "role": "override",
+      "swift": { "accept": true, "canonical": "*.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd" },
+      "rust": { "accept": true, "canonical": "*.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd" }
+    },
+    {
+      "note": "DNS-018: 252 base octets plus the wildcard label is 256 on the wire; both sides used to accept it.",
+      "input": "*.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "role": "override",
+      "swift": { "accept": false, "canonical": null },
+      "rust": { "accept": false, "canonical": null }
+    },
+    {
+      "input": "a..b.example",
+      "role": "override",
+      "swift": { "accept": false, "canonical": null },
+      "rust": { "accept": false, "canonical": null }
+    },
+    {
+      "input": "example。com",
+      "role": "override",
+      "swift": { "accept": false, "canonical": null },
+      "rust": { "accept": false, "canonical": null }
+    },
+    {
+      "note": "Bidi rule: a label mixing Latin and Hebrew letters.",
+      "input": "a\u05d0.example",
+      "role": "override",
+      "swift": { "accept": false, "canonical": null },
+      "rust": { "accept": false, "canonical": null }
+    },
+    {
+      "note": "Bidi rule applied to a single-label override owner.",
+      "input": "a\u05d0",
+      "role": "override",
+      "swift": { "accept": false, "canonical": null },
+      "rust": { "accept": false, "canonical": null }
+    },
+    {
+      "note": "A label cannot start with a combining mark.",
+      "input": "\u0301a.example",
+      "role": "override",
+      "swift": { "accept": false, "canonical": null },
+      "rust": { "accept": false, "canonical": null }
+    },
+    {
+      "note": "A right-to-left label cannot start with a combining mark either.",
+      "input": "\u05b0\u05d0.example",
+      "role": "override",
+      "swift": { "accept": false, "canonical": null },
+      "rust": { "accept": false, "canonical": null }
+    },
+    {
+      "note": "Bidi rule: in a name with a right-to-left label, a left-to-right label must start with a letter.",
+      "input": "\u05d0.1example",
+      "role": "override",
+      "swift": { "accept": false, "canonical": null },
+      "rust": { "accept": false, "canonical": null }
+    },
+    {
+      "note": "Bidi rule: an all-digit label inside a name with a right-to-left label.",
+      "input": "123.\u05d0",
+      "role": "override",
+      "swift": { "accept": false, "canonical": null },
+      "rust": { "accept": false, "canonical": null }
+    },
+    {
+      "note": "Bidi rule: European and Arabic-Indic digits cannot share a right-to-left label.",
+      "input": "\u0628\u06611.example",
+      "role": "override",
+      "swift": { "accept": false, "canonical": null },
+      "rust": { "accept": false, "canonical": null }
+    },
+    {
+      "note": "A right-to-left label may end in a European digit.",
+      "input": "\u05d01.example",
+      "role": "override",
+      "swift": { "accept": true, "canonical": "xn--1-zhc.example" },
+      "rust": { "accept": true, "canonical": "xn--1-zhc.example" }
+    },
+    {
+      "note": "A right-to-left label may hold Arabic-Indic digits.",
+      "input": "\u05d0\u0661.example",
+      "role": "override",
+      "swift": { "accept": true, "canonical": "xn--4db40a.example" },
+      "rust": { "accept": true, "canonical": "xn--4db40a.example" }
+    },
+    {
+      "note": "All-ASCII names skip IDNA processing on both sides, A-labels included.",
+      "input": "xn--4db.1example",
+      "role": "override",
+      "swift": { "accept": true, "canonical": "xn--4db.1example" },
+      "rust": { "accept": true, "canonical": "xn--4db.1example" }
+    },
+    {
+      "note": "Swift refuses an A-label next to Unicode text because it cannot decode and check it. The resolver decodes it to a Hebrew label and accepts the name.",
+      "input": "\u00e9.xn--4db",
+      "role": "override",
+      "swift": { "accept": false, "canonical": null },
+      "rust": { "accept": true, "canonical": "xn--9ca.xn--4db" }
+    },
+    {
+      "note": "A forward zone routes every name under it, so a single label is limited to a reserved TLD.",
+      "input": "com",
+      "role": "forwardZone",
+      "swift": { "accept": false, "canonical": null },
+      "rust": { "accept": false, "canonical": null }
+    },
+    {
+      "note": "An exact single-label override owner is a host name and only answers for itself.",
+      "input": "Server",
+      "role": "override",
+      "swift": { "accept": true, "canonical": "server" },
+      "rust": { "accept": true, "canonical": "server" }
+    },
+    {
+      "note": "A single-label wildcard would capture a whole TLD, so it stays limited to a reserved TLD.",
+      "input": "*.server",
+      "role": "override",
+      "swift": { "accept": false, "canonical": null },
+      "rust": { "accept": false, "canonical": null }
+    },
+    {
+      "input": "intranet",
+      "role": "override",
+      "swift": { "accept": true, "canonical": "intranet" },
+      "rust": { "accept": true, "canonical": "intranet" }
+    }
+  ],
+  "targets": [
+    {
+      "input": "target.example",
+      "swift": { "accept": true },
+      "rust": { "accept": true }
+    },
+    {
+      "note": "One trailing root dot is presentation syntax, not an empty label.",
+      "input": "target.example.",
+      "swift": { "accept": true },
+      "rust": { "accept": true }
+    },
+    {
+      "note": "DNS-019: empty interior label.",
+      "input": "target..example",
+      "swift": { "accept": false },
+      "rust": { "accept": false }
+    },
+    {
+      "note": "DNS-019: empty leading label.",
+      "input": ".target.example",
+      "swift": { "accept": false },
+      "rust": { "accept": false }
+    },
+    {
+      "note": "DNS-019: a second root dot is an empty label.",
+      "input": "target.example..",
+      "swift": { "accept": false },
+      "rust": { "accept": false }
+    },
+    {
+      "note": "Underscore labels are legal in RDATA targets; hickory takes them through from_ascii.",
+      "input": "_dmarc.example.com",
+      "swift": { "accept": true },
+      "rust": { "accept": true }
+    },
+    {
+      "note": "DNS-018: 253 textual octets is exactly 255 on the wire.",
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "swift": { "accept": true },
+      "rust": { "accept": true }
+    },
+    {
+      "note": "DNS-018: 254 textual octets is 256 on the wire; the old raw <= 255 check accepted it.",
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "swift": { "accept": false },
+      "rust": { "accept": false }
+    },
+    {
+      "note": "DNS-018 aggravation: 161 raw octets, 271 once every label is punycoded.",
+      "input": "münchen.münchen.münchen.münchen.münchen.münchen.münchen.münchen.münchen.münchen.münchen.münchen.münchen.münchen.münchen.münchen.münchen.münchen",
+      "swift": { "accept": false },
+      "rust": { "accept": false }
+    },
+    {
+      "note": "hickory is_safe_ascii: a wildcard label is legal in a target.",
+      "input": "*.example",
+      "swift": { "accept": true },
+      "rust": { "accept": true }
+    },
+    {
+      "note": "hickory is_safe_ascii: a dash cannot open a label.",
+      "input": "-lead.example",
+      "swift": { "accept": false },
+      "rust": { "accept": false }
+    },
+    {
+      "note": "hickory is_safe_ascii: punctuation outside -, _ and * is refused.",
+      "input": "target$.example",
+      "swift": { "accept": false },
+      "rust": { "accept": false }
+    },
+    {
+      "note": "DNS-017 applies to RDATA targets too; the resolver would fold this onto a.example.",
+      "input": "Ａ.example",
+      "swift": { "accept": false },
+      "rust": { "accept": true }
+    }
+  ],
+  "forwardTargets": [
+    { "input": "0.0.0.0", "isAddress": true, "usable": false, "kind": "unspecified" },
+    { "input": "255.255.255.255", "isAddress": true, "usable": false, "kind": "broadcast" },
+    { "input": "224.0.0.251", "isAddress": true, "usable": false, "kind": "multicast" },
+    { "input": "239.255.255.250", "isAddress": true, "usable": false, "kind": "multicast" },
+    { "input": "::", "isAddress": true, "usable": false, "kind": "unspecified" },
+    { "input": "ff02::fb", "isAddress": true, "usable": false, "kind": "multicast" },
+    { "input": "127.0.0.1", "isAddress": true, "usable": true, "kind": null },
+    { "input": "::1", "isAddress": true, "usable": true, "kind": null },
+    { "input": "10.0.0.1", "isAddress": true, "usable": true, "kind": null },
+    { "input": "192.168.1.1", "isAddress": true, "usable": true, "kind": null },
+    { "input": "2001:db8::53", "isAddress": true, "usable": true, "kind": null },
+    { "input": "not-an-ip", "isAddress": false, "usable": false, "kind": null }
+  ]
+}

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Network Extension capability for DNS Proxy System Extension -->
+    <key>com.apple.developer.networking.networkextension</key>
+    <array>
+        <string>dns-proxy-systemextension</string>
+    </array>
+
+    <!-- App Sandbox -->
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+
+    <!-- Network client access (for DNS queries to the in-process resolver and upstream) -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+
+    <!-- Network server access (for receiving DNS queries) -->
+    <key>com.apple.security.network.server</key>
+    <true/>
+
+    <!-- App Group authorizes the proxy-control Mach namespace (no shared files) -->
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>group.app.macdns</string>
+    </array>
+</dict>
+</plist>

@@ -1,0 +1,81 @@
+[package]
+name = "macdns-resolver"
+version = "1.0.0"
+edition = "2021"
+license = "LicenseRef-FCL-1.0-ALv2"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+hickory-resolver = { version = "0.26.3", features = [
+    "https-ring",
+    "dnssec-ring",
+    "tokio",
+    # rustls ships with an empty root store, so without this feature every DoH
+    # TLS handshake fails with `UnknownIssuer`. The platform verifier validates
+    # through the macOS Security framework, so DoH trusts the same roots as
+    # Safari, curl and MDM profiles, with no static bundle to go stale.
+    "rustls-platform-verifier",
+] }
+hickory-proto = { version = "0.26.3", features = ["dnssec-ring"] }
+
+tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+futures = "0.3"
+
+moka = { version = "0.12", features = ["future"] }
+
+surge-ping = "0.9"
+
+arc-swap = "1"
+dashmap = "6"
+idna = "1"
+
+# heed drives the LMDB environments behind `BlocklistDb` / `AllowlistDb`.
+# reqwest fetches the hagezi category files on the resolver's tokio runtime
+# (gzip transfer, ~85% smaller). ring hashes the decoded body with SHA-256 so a
+# byte-identical download skips the LMDB rebuild.
+heed = { version = "0.23", default-features = false }
+reqwest = { version = "0.13", default-features = false, features = [
+    "gzip",
+    "http2",
+    "rustls",
+    "stream",
+] }
+ring = "0.17"
+serde_json = "1"
+# Scrubs the ephemeral proxy-control HMAC key. `default-features = false` keeps
+# only the core `Zeroize`/`Zeroizing` primitives (no alloc, derive or simd).
+zeroize = { version = "1", default-features = false }
+
+log = "0.4"
+tracing = { version = "0.1", default-features = false, features = ["std"] }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["registry"] }
+num_cpus = "1"
+rand = "0.10"
+thiserror = "2"
+serde = { version = "1", features = ["derive"] }
+# postcard replaces bincode (RUSTSEC-2025-0141, unmaintained). The same serde
+# derives work unchanged, and the varint little-endian layout stays within a
+# few percent of bincode's size on DNS message wires. `alloc` lets it return
+# `Vec<u8>`.
+postcard = { version = "1", default-features = false, features = ["alloc"] }
+# gzip for the cache snapshot. A serialized snapshot of a few thousand DNS
+# messages can reach single-digit MB, and DNS wire bytes compress ~5x (repeated
+# domain labels, low-entropy TTL and code fields). A few ms of CPU at start/stop
+# buys less disk I/O and Time Machine churn.
+flate2 = "1"
+# Local lookup history (`history`). `bundled` pins the SQLite version to the
+# crate instead of whatever libsqlite3 the macOS release ships.
+rusqlite = { version = "0.41.1", features = ["bundled"] }
+
+[dev-dependencies]
+bytes = "1"
+h2 = "0.4"
+http = "1"
+rustls = "0.23"
+tokio = { version = "1", features = ["full", "test-util"] }
+tokio-rustls = "0.26"
+tempfile = "3"

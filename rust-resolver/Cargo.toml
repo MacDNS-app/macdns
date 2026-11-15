@@ -1,0 +1,26 @@
+[workspace]
+resolver = "2"
+members = ["crates/macdns-resolver"]
+exclude = ["vendor/hickory-net", "vendor/hickory-resolver"]
+
+[patch.crates-io]
+hickory-net = { path = "vendor/hickory-net" }
+hickory-resolver = { path = "vendor/hickory-resolver" }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = "symbols"
+# The FFI layer wraps every `extern "C"` entry in `catch_unwind` and returns a
+# sentinel (`0` / `-1` / `NULL`) on panic, so a Rust panic surfaces as an error
+# code instead of aborting the host agent. `panic = "abort"` would make
+# `catch_unwind` a no-op and turn every panic into an agent crash. A
+# `compile_error!` in `lib.rs` enforces this setting.
+panic = "unwind"
+debug = "line-tables-only"
+split-debuginfo = "packed"
+# Incremental fingerprints have occasionally left release artifacts built from
+# stale source after rapid iteration. Disabling it costs ~10-30s per clean build
+# and keeps the shipped dylib in sync with the tree.
+incremental = false

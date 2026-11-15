@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>app.macdns.agent</string>
+
+    <key>BundleProgram</key>
+    <string>Contents/MacOS/MacDNSAgent</string>
+
+    <key>MachServices</key>
+    <dict>
+        <key>app.macdns.agent</key>
+        <true/>
+    </dict>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <key>RunAtLoad</key>
+    <true/>
+</dict>
+</plist>
