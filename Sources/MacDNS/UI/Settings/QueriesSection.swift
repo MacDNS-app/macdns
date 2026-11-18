@@ -11,22 +11,15 @@ struct QueriesSection: View {
     @StateObject private var model = QueriesModel()
     @State private var showClearConfirmation = false
 
-    private struct ReloadKey: Equatable {
-        let agentInstalled: Bool
+    private struct ReloadKey: Hashable {
         let mode: QueriesModel.Mode
         let range: QueryHistoryRange
         let zoom: QueryHistoryZoom?
         let clears: Int
     }
 
-    private struct AutoRefreshKey: Equatable {
-        let reload: ReloadKey
-        let interval: Int
-    }
-
     private var reloadKey: ReloadKey {
         ReloadKey(
-            agentInstalled: viewModel.agentInstalled,
             mode: model.mode,
             range: model.range,
             zoom: model.zoom,
@@ -61,24 +54,52 @@ struct QueriesSection: View {
             onTurnOn: { viewModel.enableDNS() }
         )
         .clearHistoryConfirmation(isPresented: $showClearConfirmation, viewModel: viewModel)
-        .task(id: reloadKey) {
-            guard viewModel.agentInstalled else { return }
-            viewModel.loadQueryHistoryStatus()
-            await model.refresh(isAutomatic: false)
-        }
-        .task(id: AutoRefreshKey(reload: reloadKey, interval: viewModel.queriesRefreshInterval)) {
-            // A zoomed bar is a fixed period, so the page holds still until Reset.
-            guard viewModel.agentInstalled, model.zoom == nil else { return }
-            let interval = viewModel.queriesRefreshInterval
-            // Runs only while the page is on screen. A new interval or reload
-            // restarts the wait. A tick that finds a request still running is
-            // skipped, so refreshes never overlap.
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(interval))
-                guard !Task.isCancelled, !model.isLoading else { continue }
-                viewModel.loadQueryHistoryStatus()
-                await model.refresh(isAutomatic: true)
+        .background {
+            if viewModel.agentInstalled {
+                QueriesRefreshTasks(
+                    reloadKey: reloadKey,
+                    interval: model.zoom == nil ? .seconds(viewModel.queriesRefreshInterval) : nil
+                ) { automatic in
+                    guard !automatic || !model.isLoading else { return }
+                    viewModel.loadQueryHistoryStatus()
+                    await model.refresh(isAutomatic: automatic)
+                }
             }
+        }
+    }
+}
+
+struct QueriesRefreshTasks<Key: Hashable>: View {
+    let reloadKey: Key
+    let interval: Duration?
+    let refresh: @MainActor (Bool) async -> Void
+    @ObservedObject private var settingsWindow = SettingsWindowController.shared
+    @State private var loadedKey: Key?
+
+    var body: some View {
+        if settingsWindow.isOnScreen {
+            Color.clear
+                .task {
+                    guard !Task.isCancelled else { return }
+                    let reopening = loadedKey == reloadKey
+                    loadedKey = reloadKey
+                    if !reopening || interval != nil {
+                        await refresh(reopening)
+                    }
+                }
+                .task(id: interval) {
+                    guard let interval else { return }
+                    while !Task.isCancelled {
+                        do {
+                            try await Task.sleep(for: interval)
+                        } catch {
+                            return
+                        }
+                        guard !Task.isCancelled else { return }
+                        await refresh(true)
+                    }
+                }
+                .id(reloadKey)
         }
     }
 }

@@ -62,13 +62,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 // MARK: - Settings Window Controller
-class SettingsWindowController {
+class SettingsWindowController: ObservableObject {
     static let shared = SettingsWindowController()
 
+    @Published private(set) var isOnScreen = false
     private var settingsWindowObserver: NSObjectProtocol?
     private var settingsWindowKeyObserver: NSObjectProtocol?
 
     init() {
+        isOnScreen = NSApp.windows.contains { isSettingsWindow($0) && $0.occlusionState.contains(.visible) }
+        NotificationCenter.default.publisher(for: NSWindow.didChangeOcclusionStateNotification)
+            .compactMap { [weak self] notification -> Bool? in
+                guard let window = notification.object as? NSWindow, self?.isSettingsWindow(window) == true else {
+                    return nil
+                }
+                return window.occlusionState.contains(.visible)
+            }
+            .removeDuplicates()
+            .assign(to: &$isOnScreen)
+
         // SwiftUI keeps the Settings view alive after its window closes, so
         // onAppear does not fire on reopen. The window becoming key does.
         settingsWindowKeyObserver = NotificationCenter.default.addObserver(
