@@ -3,7 +3,7 @@ BASE_PKG_ID = app.macdns
 REPO_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
 # Semantic version (MAJOR.MINOR.PATCH)
-VERSION = 2.7.0
+VERSION = 2.7.1
 
 # Build number: VERSION + build sequence (e.g. 2.0.1.20260725213412).
 # Used as CFBundleVersion in extensions so macOS detects updates even when
