@@ -9,8 +9,6 @@ protocol AllowlistResolverBackend {
         [String], ResolverModule.AllowlistListError
     >
     func replaceAllowedDomains(_ domains: [String]) -> Bool
-    func addAllowedDomain(_ domain: String) -> Bool
-    func removeAllowedDomain(_ domain: String) -> Bool
 }
 
 extension ResolverModule: AllowlistResolverBackend {}
@@ -22,7 +20,7 @@ extension ResolverModule: AllowlistResolverBackend {}
 /// `ResolverModule.shared.setAllowlistPath(...)` runs once at agent startup and
 /// the Rust side opens the LMDB env lazily on the first read or write. Every
 /// method here is therefore safe while the resolver is stopped, which
-/// Preferences relies on to list, add and remove long before `start()`.
+/// Preferences relies on to list and replace long before `start()`.
 class AllowlistManager {
     static let shared = AllowlistManager()
 
@@ -86,25 +84,6 @@ class AllowlistManager {
         return domains
     }
 
-    func addDomain(_ domain: String) throws {
-        guard !domain.isEmpty, domain.contains(".") else {
-            throw AllowlistError.invalidDomain(domain)
-        }
-        guard resolver.addAllowedDomain(domain) else {
-            AgentLogger.shared.error("addAllowedDomain FFI returned failure for '\(domain)'")
-            throw AllowlistError.commandFailed("dns_allowlist_add failed for \(domain)")
-        }
-        invalidateCache()
-    }
-
-    func removeDomain(_ domain: String) throws {
-        guard resolver.removeAllowedDomain(domain) else {
-            AgentLogger.shared.error("removeAllowedDomain FFI returned failure for '\(domain)'")
-            throw AllowlistError.commandFailed("dns_allowlist_remove failed for \(domain)")
-        }
-        invalidateCache()
-    }
-
     /// The enabled domains in `state.json` become the complete LMDB contents.
     @discardableResult
     func syncToLMDB(domains: [AllowedDomain]) -> (added: [String], removed: [String]) {
@@ -148,16 +127,10 @@ class AllowlistManager {
 // MARK: - Error Types
 
 enum AllowlistError: Error, LocalizedError {
-    case invalidDomain(String)
-    case commandFailed(String)
     case executionFailed(String)
 
     var errorDescription: String? {
         switch self {
-        case .invalidDomain(let domain):
-            return "Invalid domain: \(domain)"
-        case .commandFailed(let message):
-            return "Command failed: \(message)"
         case .executionFailed(let message):
             return "Execution failed: \(message)"
         }

@@ -565,23 +565,6 @@ class XPCClient {
         } as? MacDNSXPCProtocol
     }
 
-    func startResolver(completion: @escaping (Bool) -> Void) {
-        Task {
-            let result = await startResolverAsync()
-            let success: Bool
-
-            switch result {
-            case .success(let didStart):
-                success = didStart
-            case .failure(let error):
-                self.logger.error("Failed to start Agent: \(error.localizedDescription, privacy: .public)")
-                success = false
-            }
-
-            DispatchQueue.main.async { completion(success) }
-        }
-    }
-
     func stopResolver(force: Bool = false, completion: @escaping (Bool) -> Void) {
         Task {
             let result = await stopResolverAsync(force: force)

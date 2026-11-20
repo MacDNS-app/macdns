@@ -874,21 +874,23 @@ pub unsafe extern "C" fn dns_reload_blocklist(settings_path: *const c_char) -> c
         let blocklists_dir =
             std::path::PathBuf::from(blocklist_scheduler::paths::blocklists_path());
         match blocklist_scheduler::settings::load_config(std::path::Path::new(s), &blocklists_dir) {
-            Ok(cfg) => match blocklist::reload_from_config(&cfg, "ffi-reload") {
-                blocklist::ReloadOutcome::Applied => 1,
-                blocklist::ReloadOutcome::PendingMissing { missing } => {
-                    log::info!(
+            Ok(cfg) => {
+                let outcome = blocklist::reload_from_config(&cfg, "ffi-reload");
+                match outcome {
+                    blocklist::ReloadOutcome::Applied => {}
+                    blocklist::ReloadOutcome::PendingMissing { missing } => log::info!(
                         "blocklist reload: {missing} selected database(s) not downloaded yet; previous snapshot stays live until the next refresh"
-                    );
-                    1
-                }
-                blocklist::ReloadOutcome::KeptPrevious { open_failed } => {
-                    log::error!(
+                    ),
+                    blocklist::ReloadOutcome::KeptPrevious { open_failed } => log::error!(
                         "blocklist reload kept previous snapshot because {open_failed} database(s) failed to open"
-                    );
+                    ),
+                }
+                if outcome.accepted() {
+                    1
+                } else {
                     0
                 }
-            },
+            }
             Err(e) => {
                 log::error!("blocklist reload: {}", e);
                 0
@@ -1305,100 +1307,6 @@ pub unsafe extern "C" fn dns_allowlist_replace_json(domains_json: *const c_char)
     }))
     .unwrap_or_else(|_| {
         log::error!("dns_allowlist_replace_json: panic");
-        -1
-    })
-}
-
-/// # Safety
-/// `domain` must be a valid, NUL-terminated UTF-8 C string for the call
-/// duration. Adds a single domain to the allowlist LMDB. Returns 1 on
-/// success, -1 on any error (path not set, invalid domain, LMDB failure,
-/// panic).
-#[no_mangle]
-pub unsafe extern "C" fn dns_allowlist_add(domain: *const c_char) -> c_int {
-    catch_unwind(AssertUnwindSafe(|| {
-        if domain.is_null() {
-            return -1;
-        }
-        let s = match unsafe { CStr::from_ptr(domain) }.to_str() {
-            Ok(v) => v,
-            Err(e) => {
-                log::error!("dns_allowlist_add: {}", e);
-                return -1;
-            }
-        };
-        let db = match blocklist::get_or_open_allowlist() {
-            Ok(Some(db)) => db,
-            Ok(None) => {
-                log::error!("dns_allowlist_add: path not configured");
-                return -1;
-            }
-            Err(e) => {
-                log::error!("dns_allowlist_add: {}", e);
-                return -1;
-            }
-        };
-        let name = match DomainName::new(s) {
-            Ok(n) => n,
-            Err(e) => {
-                log::warn!("dns_allowlist_add: invalid domain {:?}: {}", s, e);
-                return -1;
-            }
-        };
-        match db.add_domain(&name) {
-            Ok(()) => 1,
-            Err(e) => {
-                log::error!("dns_allowlist_add: {}", e);
-                -1
-            }
-        }
-    }))
-    .unwrap_or_else(|_| {
-        log::error!("dns_allowlist_add: panic");
-        -1
-    })
-}
-
-/// # Safety
-/// `domain` must be a valid, NUL-terminated UTF-8 C string for the call
-/// duration. Removes a single domain from the allowlist LMDB. Returns 1 when
-/// the domain was removed or the env is empty (remove is idempotent for the
-/// caller), -1 on error.
-#[no_mangle]
-pub unsafe extern "C" fn dns_allowlist_remove(domain: *const c_char) -> c_int {
-    catch_unwind(AssertUnwindSafe(|| {
-        if domain.is_null() {
-            return -1;
-        }
-        let s = match unsafe { CStr::from_ptr(domain) }.to_str() {
-            Ok(v) => v,
-            Err(_) => return -1,
-        };
-        let db = match blocklist::get_or_open_allowlist() {
-            Ok(Some(db)) => db,
-            Ok(None) => {
-                log::error!("dns_allowlist_remove: path not configured");
-                return -1;
-            }
-            Err(_) => return -1,
-        };
-        let name = match DomainName::new(s) {
-            Ok(n) => n,
-            Err(e) => {
-                log::warn!("dns_allowlist_remove: invalid domain {:?}: {}", s, e);
-                return -1;
-            }
-        };
-        match db.remove_domain(&name) {
-            Ok(_) => 1,
-            Err(e) => {
-                log::error!("dns_allowlist_remove: {}", e);
-                -1
-            }
-        }
-    }))
-    .unwrap_or_else(|_| {
-        log::error!("dns_allowlist_remove: panic");
         -1
     })
 }

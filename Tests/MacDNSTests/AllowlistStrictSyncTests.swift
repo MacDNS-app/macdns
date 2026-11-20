@@ -19,8 +19,6 @@ final class AllowlistStrictSyncTests: XCTestCase {
         XCTAssertTrue(result.added.isEmpty)
         XCTAssertTrue(result.removed.isEmpty)
         XCTAssertEqual(resolver.replaceCallCount, 0)
-        XCTAssertEqual(resolver.addCallCount, 0)
-        XCTAssertEqual(resolver.removeCallCount, 0)
     }
 
     func testSyncReplacesEntireAllowlistInOneCall() {
@@ -39,8 +37,6 @@ final class AllowlistStrictSyncTests: XCTestCase {
 
         XCTAssertTrue(result.success)
         XCTAssertEqual(resolver.replaceCallCount, 1)
-        XCTAssertEqual(resolver.addCallCount, 0)
-        XCTAssertEqual(resolver.removeCallCount, 0)
         XCTAssertEqual(
             resolver.lastReplacedDomains.sorted(),
             ["fresh.example", "kept.example"]
@@ -88,8 +84,6 @@ private final class RecordingAllowlistResolver: AllowlistResolverBackend {
     private let replaceSucceeds: Bool
 
     private(set) var replaceCallCount = 0
-    private(set) var addCallCount = 0
-    private(set) var removeCallCount = 0
     private(set) var lastReplacedDomains: [String] = []
 
     init(
@@ -108,15 +102,5 @@ private final class RecordingAllowlistResolver: AllowlistResolverBackend {
         replaceCallCount += 1
         lastReplacedDomains = domains
         return replaceSucceeds
-    }
-
-    func addAllowedDomain(_ domain: String) -> Bool {
-        addCallCount += 1
-        return true
-    }
-
-    func removeAllowedDomain(_ domain: String) -> Bool {
-        removeCallCount += 1
-        return true
     }
 }

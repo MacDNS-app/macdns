@@ -85,8 +85,6 @@ private typealias DnsApplyPolicySnapshotFn =
 private typealias DnsApplyEphemeralRoutesFn = @convention(c) (UnsafePointer<CChar>) -> Int32
 private typealias DnsApplyNetworkSnapshotFn = @convention(c) (UnsafePointer<CChar>) -> Int32
 private typealias DnsAllowlistReplaceJsonFn = @convention(c) (UnsafePointer<CChar>) -> Int32
-private typealias DnsAllowlistAddFn = @convention(c) (UnsafePointer<CChar>) -> Int32
-private typealias DnsAllowlistRemoveFn = @convention(c) (UnsafePointer<CChar>) -> Int32
 private typealias DnsAllowlistFreeJsonFn = @convention(c) (UnsafeMutablePointer<CChar>?) -> Void
 
 // Lookup history. The query returns a heap-allocated JSON C-string the caller
@@ -196,8 +194,6 @@ final class ResolverModule {
     private var fnApplyEphemeralRoutes: DnsApplyEphemeralRoutesFn?
     private var fnApplyNetworkSnapshot: DnsApplyNetworkSnapshotFn?
     private var fnAllowlistReplaceJson: DnsAllowlistReplaceJsonFn?
-    private var fnAllowlistAdd: DnsAllowlistAddFn?
-    private var fnAllowlistRemove: DnsAllowlistRemoveFn?
     private var fnAllowlistFreeJson: DnsAllowlistFreeJsonFn?
     private var fnSetHistoryPath: DnsSetHistoryPathFn?
     private var fnConfigureHistory: DnsConfigureHistoryFn?
@@ -271,8 +267,6 @@ final class ResolverModule {
         fnApplyEphemeralRoutes = sym("dns_apply_ephemeral_routes")
         fnApplyNetworkSnapshot = sym("dns_apply_network_snapshot")
         fnAllowlistReplaceJson = sym("dns_allowlist_replace_json")
-        fnAllowlistAdd = sym("dns_allowlist_add")
-        fnAllowlistRemove = sym("dns_allowlist_remove")
         fnAllowlistFreeJson = sym("dns_allowlist_free_json")
         fnSetHistoryPath = sym("dns_set_history_path")
         fnConfigureHistory = sym("dns_configure_history")
@@ -998,23 +992,5 @@ final class ResolverModule {
             return false
         }
         return json.withCString { p in fn(p) == 1 }
-    }
-
-    /// Adds a single domain to the allowlist LMDB. Returns `true` on
-    /// success. Invalid domain strings surface as `false`, and the Rust side
-    /// already logged the reason through the FFI logger.
-    @discardableResult
-    func addAllowedDomain(_ domain: String) -> Bool {
-        guard load(), let fn = fnAllowlistAdd else { return false }
-        return domain.withCString { p in fn(p) == 1 }
-    }
-
-    /// Removes a single domain from the allowlist LMDB. Idempotent from the
-    /// caller's perspective. Removing a non-existent domain still returns
-    /// `true` as long as the call reached the Rust side without error.
-    @discardableResult
-    func removeAllowedDomain(_ domain: String) -> Bool {
-        guard load(), let fn = fnAllowlistRemove else { return false }
-        return domain.withCString { p in fn(p) == 1 }
     }
 }

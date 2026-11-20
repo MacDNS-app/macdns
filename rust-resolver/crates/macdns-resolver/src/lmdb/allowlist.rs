@@ -41,21 +41,13 @@ impl AllowlistDb {
         Ok(Self { env, db })
     }
 
+    #[cfg(test)]
     pub fn add_domain(&self, domain: &DomainName) -> Result<()> {
         let mut wtxn = self.env.write_txn()?;
         let key = domain.as_key_bytes();
         self.db.put(&mut wtxn, &key, &())?;
         wtxn.commit()?;
         Ok(())
-    }
-
-    /// Returns `false` when the domain was not in the allowlist.
-    pub fn remove_domain(&self, domain: &DomainName) -> Result<bool> {
-        let mut wtxn = self.env.write_txn()?;
-        let key = domain.as_key_bytes();
-        let deleted = self.db.delete(&mut wtxn, &key)?;
-        wtxn.commit()?;
-        Ok(deleted)
     }
 
     /// Replace the entire allowlist in a single write transaction.
@@ -196,24 +188,6 @@ mod tests {
         db.add_domain(&domain).unwrap();
 
         assert!(db.contains(&domain).unwrap());
-    }
-
-    #[test]
-    fn test_remove_domain() {
-        let temp = TempDir::new().unwrap();
-        let db = AllowlistDb::open(temp.path()).unwrap();
-
-        let domain = DomainName::new("example.com").unwrap();
-        db.add_domain(&domain).unwrap();
-
-        assert!(db.contains(&domain).unwrap());
-
-        let removed = db.remove_domain(&domain).unwrap();
-        assert!(removed);
-        assert!(!db.contains(&domain).unwrap());
-
-        let removed_again = db.remove_domain(&domain).unwrap();
-        assert!(!removed_again);
     }
 
     #[test]
