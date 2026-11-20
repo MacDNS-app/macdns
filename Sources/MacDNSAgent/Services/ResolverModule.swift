@@ -381,11 +381,7 @@ final class ResolverModule {
                 o.dnsAnswerRefinementEnabled ? 1 : 0
             )
         }
-        guard Self.confirmedResolverOptionsApplySucceeded(result) else {
-            AgentLogger.shared.error("resolver: rejected resolver options")
-            return false
-        }
-        return true
+        return Self.confirmedResolverOptionsApplySucceeded(result)
     }
 
     /// Live-updates runtime knobs. Only `logQueries`, `logReplies`,
@@ -515,9 +511,6 @@ final class ResolverModule {
             return !isRunning()
         }
         var stopped = fnShutdown(force ? 1 : 0) == 1
-        if !stopped {
-            AgentLogger.shared.error("resolver: dns_shutdown failed")
-        }
 
         // A reported failure is still a real stop if the module went down.
         if !stopped && !isRunning() {
@@ -532,7 +525,6 @@ final class ResolverModule {
         }
 
         stateLock.withLock { startTime = nil }
-        AgentLogger.shared.info("resolver module stopped")
         return true
     }
 
@@ -823,10 +815,7 @@ final class ResolverModule {
             AgentLogger.shared.warning("resolver: allowlist list symbols missing")
             return .failure(.symbolsMissing)
         }
-        guard let ptr = list() else {
-            AgentLogger.shared.warning("resolver: dns_allowlist_list returned nil")
-            return .failure(.ffiFailure)
-        }
+        guard let ptr = list() else { return .failure(.ffiFailure) }
         defer { freeJson(ptr) }
         let json = String(cString: ptr)
         guard let data = json.data(using: .utf8) else {

@@ -63,7 +63,6 @@ class AllowlistManager {
         cacheLock.lock()
         if isCacheValid(), let cached = cachedDomains {
             cacheLock.unlock()
-            AgentLogger.shared.debug("Returning cached allowlist (\(cached.count) domains)")
             return cached
         }
         cacheLock.unlock()
@@ -84,7 +83,6 @@ class AllowlistManager {
         lastCacheUpdate = Date()
         cacheLock.unlock()
 
-        AgentLogger.shared.debug("Loaded \(domains.count) domains from allowlist")
         return domains
     }
 
@@ -125,17 +123,11 @@ class AllowlistManager {
         case .success(let listedDomains):
             currentLMDBDomains = Set(listedDomains)
         case .failure:
-            AgentLogger.shared.error(
-                "Cannot sync allowlist: dns_allowlist_list failed"
-            )
             return (success: false, added: [], removed: [])
         }
         let enabledDomains = Set(domains.filter { $0.enabled }.map { $0.domain })
 
         guard resolver.replaceAllowedDomains(Array(enabledDomains).sorted()) else {
-            AgentLogger.shared.error(
-                "Cannot sync allowlist: atomic replacement failed, previous allowlist retained"
-            )
             return (success: false, added: [], removed: [])
         }
         invalidateCache()

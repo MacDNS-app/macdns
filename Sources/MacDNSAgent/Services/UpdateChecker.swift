@@ -85,8 +85,6 @@ actor UpdateChecker {
                         onUpdateAvailable?()
                     }
                 }
-            } else {
-                AgentLogger.shared.debug("No update available (current: \(currentVersion), latest: \(latestVersion))")
             }
 
             return info

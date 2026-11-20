@@ -193,10 +193,8 @@ class XPCClient {
 
                 proxy.startResolver { success in
                     if success {
-                        self.logger.info("Agent started successfully")
                         safe.resume(returning: .success(true))
                     } else {
-                        self.logger.error("Failed to start Agent")
                         safe.resume(returning: .failure(.agentError("Failed to start services")))
                     }
                 }
@@ -336,11 +334,6 @@ class XPCClient {
                             )
                         )
                         return
-                    }
-                    if !response.isPersisted {
-                        self.logger.warning(
-                            "Configuration save not persisted: \(response.status.rawValue, privacy: .public)"
-                        )
                     }
                     safe.resume(returning: .success(response))
                 }

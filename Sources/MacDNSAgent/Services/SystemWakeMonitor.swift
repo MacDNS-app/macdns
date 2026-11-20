@@ -66,7 +66,6 @@ final class SystemWakeMonitor {
                 guard let generation = self.callbackGeneration.load() else { return }
                 self.enqueueWake(capturedGeneration: generation)
             }
-            AgentLogger.shared.debug("SystemWakeMonitor started")
         }
     }
 
@@ -82,7 +81,6 @@ final class SystemWakeMonitor {
             callbackLifecycleGeneration = nil
             callbackGeneration.store(nil)
             isStarted = false
-            AgentLogger.shared.debug("SystemWakeMonitor stopped")
         }
     }
 

@@ -18,8 +18,8 @@ pub type ReplyCallback = extern "C" fn(
     provider: *const c_char,
     data: *const c_char,
 );
-/// Invoked on every SERVFAIL the proxy emits (`all-upstream-failed`,
-/// `upstream-response-failure`, `upstream-timeout` and others. Grep
+/// Invoked on every SERVFAIL the proxy emits without an upstream detail
+/// (`all-upstream-failed`, `upstream-timeout` and others. Grep
 /// `report_servfail` for the current set). A dedicated channel, like
 /// `QueryCallback` and `ReplyCallback`, lets the Swift host route these lines
 /// into a distinct os.log subsystem, so SERVFAILs can be filtered without

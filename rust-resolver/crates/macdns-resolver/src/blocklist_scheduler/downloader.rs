@@ -295,7 +295,6 @@ async fn process_task(
                 report.error = Some(msg);
                 return report;
             }
-            debug!("[{}] Not modified (304)", task.filename);
             // The stored ETag is the published version's, so a 304 means
             // upstream is back on it. A held suspicious candidate is no longer
             // consecutive and must not confirm when it reappears later.
@@ -343,10 +342,6 @@ async fn process_task(
                     pending_domain_count: None,
                 };
                 commit_metadata(&generation, &downloader, &task.db_path, &metadata);
-                debug!(
-                    "[{}] Downloaded but content unchanged (SHA-256 verified)",
-                    task.filename
-                );
             }
 
             let _ = std::fs::remove_file(&temp_file);

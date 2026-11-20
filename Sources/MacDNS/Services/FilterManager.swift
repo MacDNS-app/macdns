@@ -201,7 +201,6 @@ final class FilterManager: NSObject, ObservableObject {
                 manager.isEnabled = false
                 do {
                     try await manager.saveToPreferences()
-                    logger.debug("Content Filter disabled before removal")
                 } catch {
                     logger.warning(
                         "Failed to disable Content Filter: \(error.localizedDescription, privacy: .public)"

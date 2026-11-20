@@ -637,19 +637,6 @@ fn record_event(
                     }
                 }
                 UpstreamErrorSignal::Timeout => {
-                    log::trace!(
-                        "{} {} {:?} timed out after {:?}: {}",
-                        hedge_conn_log_prefix(
-                            event.pool_idx,
-                            provider.name,
-                            event.conn_idx,
-                            event.target_ip
-                        ),
-                        name,
-                        qtype,
-                        event.timeout,
-                        error
-                    );
                     provider.record_timeout(event.conn_idx, event.gen);
                     EventOutcome::Timeout
                 }
@@ -728,18 +715,6 @@ fn record_event(
             // errors), and a silently wedged conn that returns nothing
             // but timeouts eventually crosses the keepalive idle
             // threshold and gets probed there.
-            log::trace!(
-                "{} {} {:?} timed out after {:?}",
-                hedge_conn_log_prefix(
-                    event.pool_idx,
-                    provider.name,
-                    event.conn_idx,
-                    event.target_ip
-                ),
-                name,
-                qtype,
-                event.timeout
-            );
             provider.record_timeout(event.conn_idx, event.gen);
             EventOutcome::Timeout
         }

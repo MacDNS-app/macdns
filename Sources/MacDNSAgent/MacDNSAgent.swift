@@ -253,10 +253,7 @@ class MacDNSAgent: NSObject, MacDNSXPCProtocol, NetworkMonitorDelegate,
             AgentLogger.shared.error("Lookup history stays off: \(error.localizedDescription)")
             return false
         }
-        guard configure(settings) else {
-            AgentLogger.shared.error("Lookup history stays off: the resolver rejected its settings")
-            return false
-        }
+        guard configure(settings) else { return false }
         return true
     }
 
@@ -435,9 +432,7 @@ class MacDNSAgent: NSObject, MacDNSXPCProtocol, NetworkMonitorDelegate,
             }
         }
         if !ResolverModule.shared.configureBlocklist(settingsPath: PathResolver.blocklistSettings.path) {
-            AgentLogger.shared.error(
-                "resolver: configureBlocklist failed — LMDB reload skipped, agent will serve queries without category-level filtering"
-            )
+            AgentLogger.shared.error("Stopping services: the resolver rejected the blocklist configuration")
             stopAllServices(
                 preserveApprovedCaptiveBypass: keepProxyBypass
             )
@@ -450,15 +445,11 @@ class MacDNSAgent: NSObject, MacDNSXPCProtocol, NetworkMonitorDelegate,
         // gate as the update check.
         Task {
             await NetworkReadyWorkGate.shared.run {
-                if !ResolverModule.shared.startBlocklistScheduler() {
-                    AgentLogger.shared.error(
-                        "resolver: startBlocklistScheduler failed — periodic blocklist refresh is NOT running")
-                }
+                _ = ResolverModule.shared.startBlocklistScheduler()
             }
         }
 
         guard applyOverridesAndZonesToModule(from: startupConfig) else {
-            AgentLogger.shared.error("resolver: overrides/zones rejected during start")
             stopAllServices(
                 preserveApprovedCaptiveBypass: keepProxyBypass
             )
@@ -723,7 +714,6 @@ class MacDNSAgent: NSObject, MacDNSXPCProtocol, NetworkMonitorDelegate,
             nil,
             true
         )
-        AgentLogger.shared.debug("Sent proxy enable notification")
     }
 
     /// Wakes the App to reconcile authenticated runtime state while the resolver is stopping or stopped.
@@ -735,7 +725,6 @@ class MacDNSAgent: NSObject, MacDNSXPCProtocol, NetworkMonitorDelegate,
             nil,
             true
         )
-        AgentLogger.shared.debug("Sent proxy disable notification")
     }
 
     private func notifyLicenseStatusChanged() {
@@ -746,7 +735,6 @@ class MacDNSAgent: NSObject, MacDNSXPCProtocol, NetworkMonitorDelegate,
             nil,
             true
         )
-        AgentLogger.shared.debug("Sent license status changed notification")
     }
 
     /// Wakes the Extension to re-evaluate authenticated resolver bypass readiness.
@@ -758,7 +746,6 @@ class MacDNSAgent: NSObject, MacDNSXPCProtocol, NetworkMonitorDelegate,
             nil,
             true
         )
-        AgentLogger.shared.debug("Sent bypass enable notification")
     }
 
     /// Wakes the Extension to re-evaluate authenticated resolver bypass readiness.
@@ -770,7 +757,6 @@ class MacDNSAgent: NSObject, MacDNSXPCProtocol, NetworkMonitorDelegate,
             nil,
             true
         )
-        AgentLogger.shared.debug("Sent bypass disable notification")
     }
 
     private func notifyUpdateAvailable() {
@@ -781,7 +767,6 @@ class MacDNSAgent: NSObject, MacDNSXPCProtocol, NetworkMonitorDelegate,
             nil,
             true
         )
-        AgentLogger.shared.debug("Sent update available notification")
     }
 
     /// Replies `true` only when the resolver is confirmed stopped. The reply
@@ -1953,9 +1938,7 @@ class MacDNSAgent: NSObject, MacDNSXPCProtocol, NetworkMonitorDelegate,
     /// reports the change.
     private func republishNetworkProfile() {
         let snapshot = NetworkMonitor.currentProfileSnapshot()
-        if !ResolverModule.shared.applyNetworkSnapshot(snapshot) {
-            AgentLogger.shared.warning("resolver: network snapshot rejected; NAT64 synthesis stays off")
-        }
+        _ = ResolverModule.shared.applyNetworkSnapshot(snapshot)
     }
 
     // MARK: - CaptivePortalDetectorDelegate
@@ -3206,13 +3189,7 @@ class MacDNSAgent: NSObject, MacDNSXPCProtocol, NetworkMonitorDelegate,
     }
 
     func forceBlocklistUpdate(withReply reply: @escaping (Bool) -> Void) {
-        BlocklistManager.shared.forceUpdate { success in
-            if !success {
-                AgentLogger.shared.error(
-                    "blocklist forceUpdate reported failure — UI 'Update Now' will surface error")
-            }
-            reply(success)
-        }
+        BlocklistManager.shared.forceUpdate(completion: reply)
     }
 
     // MARK: - Cache Management
@@ -3220,6 +3197,7 @@ class MacDNSAgent: NSObject, MacDNSXPCProtocol, NetworkMonitorDelegate,
     /// The user-facing flush resets everything the resolver holds: answers,
     /// the cache dump, provider connections and forward/stub resolvers.
     func flushCache(withReply reply: @escaping (Bool) -> Void) {
+        AgentLogger.shared.info("Cache flush requested by the App")
         ResolverModule.shared.notifyNetworkChange()
         reply(true)
     }

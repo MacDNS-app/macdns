@@ -3028,14 +3028,13 @@ async fn serve_stale(
     ))
 }
 
-/// Always fires the `ServfailCallback` so Swift logs the line under the `:dns`
-/// subsystem. `reason` comes from a closed set (see
+/// Logs each SERVFAIL exactly once. `reason` comes from a closed set (see
 /// `log_hooks::emit_servfail`) so dashboards can bucket it.
 ///
 /// `detail` carries the upstream error string ("connection refused", a TLS or
-/// parse error), the only thing that tells failures apart. It is logged at
-/// `warn!` so it is visible without debug tracing. Without a detail the line
-/// goes only to `:dns`, so normal logs carry no duplicate SERVFAIL lines.
+/// parse error), the only thing that tells failures apart, so a SERVFAIL with a
+/// detail goes to `warn!`. One without a detail goes to the Swift `:dns`
+/// subsystem through the `ServfailCallback`.
 fn report_servfail(
     _cfg: &crate::config::ResolverOptions,
     domain: &str,
@@ -3045,9 +3044,9 @@ fn report_servfail(
 ) {
     inc(&counters().servfail);
     let qtype_str = format!("{:?}", qtype);
-    crate::log_hooks::emit_servfail(domain, &qtype_str, reason);
-    if let Some(detail) = detail {
-        log::warn!("SERVFAIL {} {} ({}): {}", domain, qtype_str, reason, detail);
+    match detail {
+        Some(detail) => log::warn!("SERVFAIL {} {} ({}): {}", domain, qtype_str, reason, detail),
+        None => crate::log_hooks::emit_servfail(domain, &qtype_str, reason),
     }
 }
 
@@ -3237,17 +3236,14 @@ async fn background_refine(
         .iter()
         .map(|(_, l)| normalize_ips(l.answers()))
         .collect();
-    let (winner, verdict_kind): (Option<(usize, Lookup)>, &'static str) = match evaluate(&ip_sets) {
-        Verdict::Consensus(set) => (
-            candidates
-                .iter()
-                .find(|(_, l)| normalize_ips(l.answers()) == set)
-                .map(|(i, l)| (*i, l.clone())),
-            "consensus",
-        ),
+    let winner: Option<(usize, Lookup)> = match evaluate(&ip_sets) {
+        Verdict::Consensus(set) => candidates
+            .iter()
+            .find(|(_, l)| normalize_ips(l.answers()) == set)
+            .map(|(i, l)| (*i, l.clone())),
         Verdict::Probe(positional_candidates) => {
             if !crate::config::current().answer_refinement {
-                (None, "first-result")
+                None
             } else {
                 // These are the raw upstream sets. `probe` drops every address
                 // the rebinding policy rejects before it emits a packet, so a
@@ -3255,13 +3251,10 @@ async fn background_refine(
                 let provider_candidates =
                     provider_indexed_probe_candidates(&positional_candidates, &candidates);
                 let best_idx = probe::pick_best_provider(&provider_candidates).await;
-                (
-                    candidates
-                        .iter()
-                        .find(|(i, _)| *i == best_idx)
-                        .map(|(i, l)| (*i, l.clone())),
-                    "answer-refinement",
-                )
+                candidates
+                    .iter()
+                    .find(|(i, _)| *i == best_idx)
+                    .map(|(i, l)| (*i, l.clone()))
             }
         }
     };
@@ -3274,21 +3267,9 @@ async fn background_refine(
             .unwrap_or_default();
 
         // Write only when the refined answer differs from the fast-path one.
-        // Trace level, because the reply and SERVFAIL channels carry the
-        // user-visible signals.
         if winner_idx != first_idx || winner_ips != first_ips {
             let providers = state.pool.all();
-            let first_name = providers.get(first_idx).map(|p| p.name).unwrap_or("?");
             let winner_name = providers.get(winner_idx).map(|p| p.name).unwrap_or("?");
-            log::trace!(
-                "cache refined ({}) {} {:?}: first={} winner={} ips={:?}",
-                verdict_kind,
-                name,
-                qtype,
-                first_name,
-                winner_name,
-                winner_ips
-            );
 
             let mut msg = message_from_lookup(0, &name, qtype, &lookup);
             // The refine winner can be a different provider whose answer
@@ -4149,6 +4130,42 @@ mod tests {
         }
     }
 
+    // One SERVFAIL is one log line. The upstream detail goes to `warn!`, so the
+    // `:dns` callback fires only when there is no detail to add.
+    #[test]
+    fn servfail_with_detail_is_logged_once_through_warn() {
+        use std::ffi::{c_char, CStr};
+        use std::sync::Mutex;
+
+        static SEEN: Mutex<Vec<String>> = Mutex::new(Vec::new());
+        extern "C" fn record(domain: *const c_char, _: *const c_char, _: *const c_char) {
+            let domain = unsafe { CStr::from_ptr(domain) }
+                .to_string_lossy()
+                .into_owned();
+            SEEN.lock().unwrap().push(domain);
+        }
+        crate::log_hooks::set_servfail_callback(record);
+
+        let cfg = crate::config::ResolverOptions::default();
+        super::report_servfail(
+            &cfg,
+            "servfail-detail.test.",
+            RecordType::A,
+            "forward-timeout",
+            Some("connection refused"),
+        );
+        super::report_servfail(
+            &cfg,
+            "servfail-plain.test.",
+            RecordType::A,
+            "cancelled",
+            None,
+        );
+
+        let seen = SEEN.lock().unwrap();
+        assert!(seen.iter().any(|d| d == "servfail-plain.test."));
+        assert!(!seen.iter().any(|d| d == "servfail-detail.test."));
+    }
     #[test]
     fn direct_doh_probe_failure_classes_are_stable() {
         let mut query = DnsQuery::new();

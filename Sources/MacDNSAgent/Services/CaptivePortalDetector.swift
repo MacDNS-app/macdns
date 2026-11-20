@@ -260,8 +260,6 @@ class CaptivePortalDetector {
             self.cancelTimer()
             self.resetCounters()
             self.phase = .determining
-
-            AgentLogger.shared.debug("Captive portal recheck initiated trigger=\(trigger.rawValue)")
             self.executeProbe(generation: self.probeGeneration)
         }
     }
@@ -318,7 +316,7 @@ class CaptivePortalDetector {
 
         #if DEBUG
             if FileManager.default.fileExists(atPath: debugCaptiveFile) {
-                AgentLogger.shared.debug("Simulating captive portal (\(debugCaptiveFile) exists)")
+                AgentLogger.shared.warning("Simulating captive portal (\(debugCaptiveFile) exists)")
                 handleProbeEvidence(
                     httpResult: .captive,
                     directDoH: .notRun,

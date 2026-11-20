@@ -108,22 +108,12 @@ class MaintenanceManager {
 
     private static func log(_ outcome: MaintenanceTickOutcome) {
         switch outcome {
-        case .skippedResolverStopped:
-            AgentLogger.shared.debug("Maintenance tick skipped - resolver not running")
         case .coalesced:
             AgentLogger.shared.warning("Maintenance tick coalesced - previous cache snapshot still running")
-        case .snapshot(.wrote(let entries)):
-            AgentLogger.shared.debug("Maintenance tick - cache snapshot persisted \(entries) entries")
-        case .snapshot(.timedOut):
-            AgentLogger.shared.warning("Maintenance tick - cache snapshot exceeded its deadline")
-        case .snapshot(.busy):
-            // Expected when a previous write outlived its FFI deadline. The
-            // resolver folds this tick into the running writer instead of
-            // letting two writers race the final rename.
-            AgentLogger.shared.info(
-                "Maintenance tick - resolver already writing a cache snapshot; tick coalesced")
-        case .snapshot(.failed):
-            AgentLogger.shared.warning("Maintenance tick - cache snapshot failed")
+        case .skippedResolverStopped, .snapshot:
+            // Snapshot outcomes (wrote, busy, timedOut, failed) are already
+            // logged by the Rust resolver with the underlying entry count or error.
+            break
         }
     }
 }

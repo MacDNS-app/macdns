@@ -308,7 +308,6 @@ final class ContentFilterProvider: NEFilterDataProvider {
             case .allow:
                 return .allow()
             case .inspect, .drop:
-                logger.debug("Blocked DoT/DoQ: destination unavailable")
                 return .drop()
             }
         }
@@ -343,8 +342,6 @@ final class ContentFilterProvider: NEFilterDataProvider {
 
         if port == 853 {
             logger.info("Blocked DoT/DoQ: \(ip, privacy: .public):853 source=\(sourcePath, privacy: .public)")
-        } else {
-            logger.debug("Blocked DoH/DoH3: \(ip, privacy: .public):443 source=\(sourcePath, privacy: .public)")
         }
         return false
     }

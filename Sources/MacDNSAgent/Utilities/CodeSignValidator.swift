@@ -52,23 +52,9 @@ class CodeSignValidator {
             return false
         }
 
-        guard let code = getCodeForAuditToken(auditToken) else {
-            AgentLogger.shared.error("Code signing validation failed: Could not get code object")
-            return false
-        }
-
-        guard validateCodeSignature(code: code) else {
-            AgentLogger.shared.error("Code signing validation failed: Invalid or untrusted signature")
-            return false
-        }
-
-        guard validateClientIdentity(code: code) else {
-            AgentLogger.shared.error("Code signing validation failed: Unauthorized client identity")
-            return false
-        }
-
-        AgentLogger.shared.debug("Code signing validation successful")
-        return true
+        // Each check below logs the Security framework status it failed on.
+        guard let code = getCodeForAuditToken(auditToken) else { return false }
+        return validateCodeSignature(code: code) && validateClientIdentity(code: code)
     }
 
     private static func getAuditToken(from connection: NSXPCConnection) -> audit_token_t? {

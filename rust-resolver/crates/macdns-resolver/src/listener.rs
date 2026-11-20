@@ -58,12 +58,6 @@ pub async fn run_udp(socket: UdpSocket, cancel: CancellationToken) {
                                     UDP_MAX_IN_FLIGHT
                                 );
                                 next_drop_log = now + LISTENER_ERROR_LOG_INTERVAL;
-                            } else {
-                                log::debug!(
-                                    "UDP query dropped from {}: in-flight limit {} reached",
-                                    addr,
-                                    UDP_MAX_IN_FLIGHT
-                                );
                             }
                             continue;
                         };
@@ -180,12 +174,6 @@ pub async fn run_tcp(listener: TcpListener, cancel: CancellationToken) {
                             TCP_MAX_CONNECTIONS
                         );
                         next_drop_log = now + LISTENER_ERROR_LOG_INTERVAL;
-                    } else {
-                        log::debug!(
-                            "TCP connection dropped from {}: connection limit {} reached",
-                            peer,
-                            TCP_MAX_CONNECTIONS
-                        );
                     }
                     continue;
                 };
@@ -207,17 +195,13 @@ pub async fn run_tcp(listener: TcpListener, cancel: CancellationToken) {
                                         // length prefix is a normal RFC 7766 connection
                                         // close (e.g. a one-shot client such as the
                                         // control-plane probe), not a failure.
-                                        if e.kind() == std::io::ErrorKind::UnexpectedEof {
-                                            log::trace!("TCP connection closed by {}", peer);
-                                        } else {
+                                        if e.kind() != std::io::ErrorKind::UnexpectedEof {
                                             log::debug!("TCP read length failed from {}: {}", peer, e);
                                         }
                                         return;
                                     }
-                                    Err(_) => {
-                                        log::debug!("TCP read length timed out from {}", peer);
-                                        return;
-                                    }
+                                    // Idle timeout between queries on a persistent connection.
+                                    Err(_) => return,
                                 }
                             }
                         }

@@ -134,9 +134,6 @@ final class LicenseTrustedClock: @unchecked Sendable {
                 LicenseTrustedTimeMark(serverTime: evidence.serverTime)
             )
         else {
-            AgentLogger.shared.error(
-                "Failed to persist trusted license time high-water mark"
-            )
             return false
         }
         lock.lock()

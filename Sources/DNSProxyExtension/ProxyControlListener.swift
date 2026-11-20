@@ -66,7 +66,6 @@ final class ProxyControlListener: NSObject, NSXPCListenerDelegate, MacDNSProxyCo
         // the agent and holding protection in permanent bypass.
         listener.setConnectionCodeSigningRequirement(proxyControlAgentRequirement)
         listener.resume()
-        logger.debug("Proxy control listener started")
     }
 
     func stop() {
@@ -140,7 +139,6 @@ final class ProxyControlListener: NSObject, NSXPCListenerDelegate, MacDNSProxyCo
             self?.handleConnectionLost(newConnection)
         }
         newConnection.resume()
-        logger.debug("Control connection accepted")
         return true
     }
 
@@ -153,7 +151,7 @@ final class ProxyControlListener: NSObject, NSXPCListenerDelegate, MacDNSProxyCo
             return true
         }
         guard owned else { return }
-        logger.warning("Control connection lost; session cleared")
+        logger.warning("Control connection lost; session cleared, bypass forced")
         onSessionLost?()
     }
 

@@ -492,7 +492,7 @@ fn dns_shutdown_inner(skip_snapshot: bool) -> c_int {
     // disconnecting the control XPC link first, so the session has to be
     // dropped here too. Idempotent: the normal Swift clear stays safe.
     proxy_control::clear();
-    log::info!("resolver shutdown requested");
+    log::debug!("resolver shutdown requested");
     if skip_snapshot {
         log::info!("resolver cache snapshot skipped for forced shutdown");
     } else {
@@ -874,13 +874,21 @@ pub unsafe extern "C" fn dns_reload_blocklist(settings_path: *const c_char) -> c
         let blocklists_dir =
             std::path::PathBuf::from(blocklist_scheduler::paths::blocklists_path());
         match blocklist_scheduler::settings::load_config(std::path::Path::new(s), &blocklists_dir) {
-            Ok(cfg) => {
-                if blocklist::reload_from_config(&cfg, "ffi-reload").accepted() {
+            Ok(cfg) => match blocklist::reload_from_config(&cfg, "ffi-reload") {
+                blocklist::ReloadOutcome::Applied => 1,
+                blocklist::ReloadOutcome::PendingMissing { missing } => {
+                    log::info!(
+                        "blocklist reload: {missing} selected database(s) not downloaded yet; previous snapshot stays live until the next refresh"
+                    );
                     1
-                } else {
+                }
+                blocklist::ReloadOutcome::KeptPrevious { open_failed } => {
+                    log::error!(
+                        "blocklist reload kept previous snapshot because {open_failed} database(s) failed to open"
+                    );
                     0
                 }
-            }
+            },
             Err(e) => {
                 log::error!("blocklist reload: {}", e);
                 0
@@ -939,7 +947,10 @@ pub extern "C" fn dns_start_blocklist_scheduler() -> c_int {
     catch_unwind(AssertUnwindSafe(|| match blocklist_scheduler::start() {
         Ok(()) => 1,
         Err(e) => {
-            log::error!("blocklist scheduler start: {}", e);
+            log::error!(
+                "blocklist scheduler not started, periodic refresh is off: {}",
+                e
+            );
             -1
         }
     }))
@@ -1097,8 +1108,9 @@ pub unsafe extern "C" fn dns_apply_policy_snapshot(
     error_len: usize,
 ) -> c_int {
     catch_unwind(AssertUnwindSafe(|| {
+        // The message reaches the host through `error_buf`, which logs it
+        // with the consequence.
         let report = |message: String| {
-            log::error!("dns_apply_policy_snapshot: {}", message);
             // SAFETY: caller contract guarantees `error_len` writable bytes.
             unsafe { write_caller_buffer(error_buf, error_len, &message) };
             0
@@ -1768,7 +1780,7 @@ pub unsafe extern "C" fn dns_enable_forwarding(
                     log::error!("forwarding generation exhausted; enable rejected");
                     return 0;
                 }
-                log::info!("forwarding enabled: {:?}", v);
+                log::debug!("forwarding enabled: {:?}", v);
                 1
             }
             Err(e) => {
@@ -1792,7 +1804,7 @@ pub extern "C" fn dns_disable_forwarding() -> c_int {
             log::error!("forwarding generation exhausted; disable rejected");
             return 0;
         }
-        log::info!("forwarding disabled");
+        log::debug!("forwarding disabled");
         1
     }))
     .unwrap_or_else(|_| {
@@ -2136,7 +2148,7 @@ fn snapshot_count_to_c_int(n: usize) -> c_int {
 #[no_mangle]
 pub extern "C" fn dns_notify_network_change() {
     let _ = catch_unwind(AssertUnwindSafe(|| {
-        log::info!("network change notified — flushing caches + rebuilding resolvers");
+        log::debug!("flushing caches and rebuilding resolvers");
         // Every step below blocks on the runtime and can outlive its session.
         // Capture both halves once so nothing here reaches into a session that
         // started while this call was running.

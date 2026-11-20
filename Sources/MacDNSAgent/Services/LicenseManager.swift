@@ -401,8 +401,6 @@ final class LicenseManager: Sendable {
             guard await beginAdmissionTransaction() else { return false }
         }
 
-        AgentLogger.shared.debug("License found, validating with API...")
-
         // The API is the source of truth, so always validate.
         let validationResult = await validateStateWithAPI(currentState)
 
@@ -1447,8 +1445,6 @@ final class LicenseManager: Sendable {
             else { return }
             if previousStatus != .trial && previousStatus != .valid {
                 AgentLogger.shared.notice("Scheduled validation: License renewed from \(previousStatus.rawValue)")
-            } else {
-                AgentLogger.shared.debug("Scheduled validation: Success")
             }
             await startValidationTimer(deadline: expiresAt)
             await notifyStatusChange(force: machineId != nil)
@@ -1816,7 +1812,6 @@ final class LicenseManager: Sendable {
             await engageFailClosed(.statePersistenceFailed)
             return false
         }
-        AgentLogger.shared.debug("License state saved: \(currentState.status.rawValue)")
         return true
     }
 
@@ -2546,9 +2541,9 @@ final class LicenseManager: Sendable {
     }
 
     private func registerTrialWithAPI(fingerprint: String) async -> TrialRegistrationResult {
+        // Every `.retryable` message is logged once, by `deferTrialRegistration`.
         guard let trialToken else {
-            AgentLogger.shared.error("Cannot create a trial: this build has no Keygen trial token")
-            return .retryable("no trial token in this build")
+            return .retryable("this build has no Keygen trial token")
         }
         let url = URL(string: "\(KeygenConfig.baseURL)/licenses")!
         var request = URLRequest(url: url)
@@ -2606,14 +2601,12 @@ final class LicenseManager: Sendable {
                 let licenseId = dataObj["id"] as? String,
                 let attributes = dataObj["attributes"] as? [String: Any]
             else {
-                AgentLogger.shared.error("Failed to parse trial response JSON")
-                return .retryable("Invalid response format")
+                return .retryable("Invalid trial response format")
             }
             guard
                 Self.isTrial(dataObj, of: fingerprint, policyId: KeygenConfig.trialPolicyId)
             else {
-                AgentLogger.shared.error("Trial response describes another license")
-                return .retryable("Response describes another license")
+                return .retryable("Trial response describes another license")
             }
             // A null expiry falls back to the trial duration from signed server time.
             guard let expiry = attributes["expiry"] as? String else {
@@ -2627,8 +2620,7 @@ final class LicenseManager: Sendable {
                 )
             }
             guard let expiresAt = Self.parseISO8601Date(expiry) else {
-                AgentLogger.shared.error("Failed to parse expiry date: \(expiry)")
-                return .retryable("Invalid expiry format")
+                return .retryable("Invalid trial expiry: \(expiry)")
             }
             return .success(
                 licenseId: licenseId,
@@ -2642,7 +2634,6 @@ final class LicenseManager: Sendable {
                 return .keyTaken
             }
             let codes = errors.map { $0.code ?? "unknown" }.joined(separator: ",")
-            AgentLogger.shared.warning("Trial registration rejected: \(codes)")
             return .retryable("Trial registration rejected: \(codes)")
 
         default:

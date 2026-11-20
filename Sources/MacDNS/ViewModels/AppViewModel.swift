@@ -897,8 +897,6 @@ class AppViewModel: ObservableObject {
             nil,
             .deliverImmediately
         )
-
-        logger.debug("Registered for proxy/license/update notifications")
     }
 
     /// Front-door coalescing for unauthenticated Darwin wake-ups.
@@ -1614,8 +1612,6 @@ class AppViewModel: ObservableObject {
             nil,
             .deliverImmediately
         )
-
-        logger.debug("Registered for captive portal notifications")
     }
 
     private func checkAgentAndExtensionStatus() {
@@ -4100,10 +4096,7 @@ class AppViewModel: ObservableObject {
             withIdentifiers: plan.identifiersToRemove
         )
 
-        guard let expiresAt = licenseInfo?.expiresAt else {
-            logger.debug("No expiration date, expiration notifications cleared")
-            return
-        }
+        guard let expiresAt = licenseInfo?.expiresAt else { return }
         let typeLabel = licenseInfo?.status == .trial ? "trial" : "license"
         logger.info(
             "Scheduling \(typeLabel, privacy: .public) expiration notifications (expires: \(expiresAt.formatted(date: .abbreviated, time: .shortened), privacy: .public))"
@@ -4783,7 +4776,6 @@ class AppViewModel: ObservableObject {
             proxyManager.isEnabled = false
             do {
                 try await proxyManager.saveToPreferences()
-                logger.debug("DNS proxy disabled before removal")
             } catch {
                 logger.warning("Failed to disable DNS proxy: \(error.localizedDescription, privacy: .public)")
                 // Continue with removal even if disable fails

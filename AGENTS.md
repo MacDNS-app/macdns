@@ -5,7 +5,8 @@ How the system is built and why: `docs/ARCHITECTURE.md`. Read it before designin
 ## Working rules
 
 - Read the existing code before changing anything. Change only what was asked, with no extra refactors.
-- No comments about removed code, no narration, no debug logs (use info, warn or error).
+- No comments about removed code, no narration.
+- Logs: error and warning say what failed and why, info records the healthy lifecycle, debug records the decisions needed to troubleshoot once enabled. Log each event once, where its cause is known, and never log expected churn or routine success.
 - **Never commit without explicit user approval.**
 - While iterating, validate only what changed: `make format`, the targeted tests (`swift test --filter <TestClass>`, `cd rust-resolver && cargo test -p macdns-resolver --lib -- <test_name>`) and `swift build --target <Target>` for Swift changes without tests. Run `make lint-invariants` when a change touches a critical invariant below.
 - `make ci` is the full gate. Run it only before a version bump, a tag or a push. `make help` lists every target.

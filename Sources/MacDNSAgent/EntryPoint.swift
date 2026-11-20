@@ -87,9 +87,8 @@ class AgentMain: NSObject, NSXPCListenerDelegate {
         _ listener: NSXPCListener, shouldAcceptNewConnection newConnection: NSXPCConnection
     ) -> Bool {
         guard CodeSignValidator.validateConnection(newConnection) else {
-            AgentLogger.shared.error("Rejecting XPC connection from unauthorized process")
             let info = CodeSignValidator.getCodeSigningInfo(newConnection)
-            AgentLogger.shared.error("Code signing info: \(info)")
+            AgentLogger.shared.error("Rejecting XPC connection from unauthorized process: \(info)")
             return false
         }
 
@@ -98,8 +97,6 @@ class AgentMain: NSObject, NSXPCListenerDelegate {
         newConnection.exportedInterface = exportedInterface
         newConnection.exportedObject = MacDNSAgent.shared
         newConnection.resume()
-
-        AgentLogger.shared.debug("Accepted XPC connection from authorized MacDNS.app")
         return true
     }
 }

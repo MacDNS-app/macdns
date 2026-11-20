@@ -280,6 +280,7 @@ impl ReloadOutcome {
 }
 
 /// Called by the scheduler on configure and refresh, and by the reload FFI.
+/// Each caller logs the outcome, because only the caller knows what follows.
 pub fn reload_from_config(cfg: &BlocklistConfig, source: &str) -> ReloadOutcome {
     let slot = BLOCKLIST.get_or_init(|| ArcSwap::from_pointee(MultiCategoryDb::new()));
     let had_live_snapshot = slot.load().database_count() > 0;
@@ -300,11 +301,6 @@ pub fn reload_from_config(cfg: &BlocklistConfig, source: &str) -> ReloadOutcome 
     }
 
     if result.open_failed > 0 && had_live_snapshot {
-        log::warn!(
-            "blocklist {}: keeping previous live snapshot because {} database(s) failed to open; settings/removals from this reload are not active yet",
-            source,
-            result.open_failed,
-        );
         drop(result.db);
         prune_unused_cached_dbs();
         return ReloadOutcome::KeptPrevious {
@@ -313,11 +309,6 @@ pub fn reload_from_config(cfg: &BlocklistConfig, source: &str) -> ReloadOutcome 
     }
 
     if result.missing > 0 && had_live_snapshot {
-        log::info!(
-            "blocklist {}: keeping previous live snapshot because {} selected database(s) are not downloaded yet; the next refresh publishes them",
-            source,
-            result.missing,
-        );
         drop(result.db);
         prune_unused_cached_dbs();
         return ReloadOutcome::PendingMissing {

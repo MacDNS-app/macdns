@@ -415,7 +415,8 @@ final class BlocklistManager: @unchecked Sendable {
                             if result.changedFiles {
                                 self.markRefreshCompleted()
                             } else if !result.selectionLoaded {
-                                AgentLogger.shared.error("First-enable blocklist refresh failed")
+                                AgentLogger.shared.error(
+                                    "Blocklist enable rolled back: a selected list is not loaded")
                             }
                             let ok = result.selectionLoaded
                             if !ok {
@@ -449,7 +450,8 @@ final class BlocklistManager: @unchecked Sendable {
                     AgentLogger.shared.info("Updating \(changedCategories.count) changed categories, fetching new DBs")
                     refreshDatabases { result in
                         if !result.selectionLoaded {
-                            AgentLogger.shared.error("Category change refresh failed")
+                            AgentLogger.shared.error(
+                                "Blocklist category change rolled back: a selected list is not loaded")
                             _ = self.rollback(from: newSettings, to: oldSettings)
                             completion(false)
                             return
@@ -492,7 +494,7 @@ final class BlocklistManager: @unchecked Sendable {
         }
 
         guard resolver.reloadBlocklist() else {
-            AgentLogger.shared.error("resolver: reloadBlocklist failed after blocklist settings update")
+            AgentLogger.shared.error("Blocklist settings rolled back: the resolver could not reload them")
             _ = rollback(from: newSettings, to: oldSettings)
             completion(false)
             return
@@ -576,9 +578,6 @@ final class BlocklistManager: @unchecked Sendable {
 
     func forceUpdate(completion: @escaping (Bool) -> Void) {
         refreshDatabases { result in
-            if !result.refreshed {
-                AgentLogger.shared.error("Blocklist refresh failed")
-            }
             completion(result.refreshed)
         }
     }

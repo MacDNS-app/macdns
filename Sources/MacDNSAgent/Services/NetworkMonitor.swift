@@ -494,12 +494,11 @@ class NetworkMonitor {
         guard isStarted else { return }
         guard callbackLifecycleGeneration == capturedGeneration else { return }
 
-        AgentLogger.shared.debug("Network configuration changed: \(changedKeys)")
-
         let hasRelevantNetworkChange = changedKeys.contains {
             $0.contains("IPv4") || $0.contains("IPv6") || $0.contains("DNS")
         }
         guard hasRelevantNetworkChange else { return }
+        AgentLogger.shared.debug("Network configuration changed: \(changedKeys)")
 
         checkNetworkStatus()
 
@@ -537,7 +536,6 @@ class NetworkMonitor {
         guard reachability.isConnected != previous.isConnected else { return }
 
         let isConnected = reachability.isConnected
-        AgentLogger.shared.debug(isConnected ? "Network connected" : "Network disconnected")
         DispatchQueue.main.async { [weak self] in
             self?.deliverStatusChange(
                 isConnected: isConnected,
@@ -673,17 +671,12 @@ class NetworkMonitor {
             let dhcpKey = "State:/Network/Service/\(primaryService)/DHCP" as CFString
             let dhcpDict = SCDynamicStoreCopyValue(store, dhcpKey) as? [String: Any]
             dhcpOption6 = dhcpDict?["Option_6"] as? Data
-        } else {
-            AgentLogger.shared.debug("No primary IPv4 service found for DHCP DNS lookup")
         }
 
-        let servers = DNSResolverAddressParser.serverAddresses(
+        return DNSResolverAddressParser.serverAddresses(
             globalDNS: globalDNSDict,
             dhcpOption6: dhcpOption6
         )
-
-        AgentLogger.shared.debug("DNS servers (via SCDynamicStore): \(servers)")
-        return servers
     }
 
 }

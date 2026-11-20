@@ -257,7 +257,6 @@ impl History {
         if self.send(Control::Apply(settings)) {
             return Ok(());
         }
-        log::error!("lookup history: writer is gone, settings not applied");
         self.restore(previous, previous_recording, previous_popular);
         Err(ConfigError::NotApplied)
     }

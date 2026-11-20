@@ -232,7 +232,6 @@ private final class ConfigurationWorker {
     func handleDarwinWakeup(reason: String) {
         guard isRunning, !immediateProbePending else { return }
         immediateProbePending = true
-        logger.debug("Health probe requested: \(reason, privacy: .public)")
         runPendingImmediateProbeWhenAllowed()
     }
 
@@ -365,7 +364,6 @@ private final class ConfigurationWorker {
         }
 
         self.dynamicStore = store
-        logger.debug("DNS observer watching global, state, and setup service DNS")
     }
 
     private func teardownDNSObserver() {
@@ -387,7 +385,6 @@ private final class ConfigurationWorker {
         }
         timer.resume()
         probeTimer = timer
-        logger.debug("Health probe started (interval: \(self.probeInterval, privacy: .public)s)")
     }
 
     private func stopHealthProbe() {
@@ -812,8 +809,8 @@ class DNSProxyProvider: NEDNSProxyProvider {
     /// forwarding in interception mode until the next health evaluation.
     private func forceBypassAfterSessionLoss() {
         let wasIntercepting = stateManager.setBypassMode(true)
+        // The listener already logged why the session ended.
         if wasIntercepting {
-            logger.warning("Control session lost; bypass forced")
             postInterceptionChanged()
             closeActiveTCPProxies()
         }
@@ -863,13 +860,10 @@ class DNSProxyProvider: NEDNSProxyProvider {
     // MARK: - UDP Flow Handling
 
     /// Peer resets and aborts are ordinary churn (connect-only probes closed
-    /// before open completes). Anything else deserves a persisted line.
+    /// before open completes). Anything else deserves an error line.
     private func logFlowOpenFailure(_ transport: String, error: Error) {
-        if ProxyFlowOpenPolicy.isRoutineOpenFailure(error) {
-            logger.debug("\(transport, privacy: .public) open failed: \(error.localizedDescription, privacy: .public)")
-        } else {
-            logger.error("\(transport, privacy: .public) open failed: \(error.localizedDescription, privacy: .public)")
-        }
+        guard !ProxyFlowOpenPolicy.isRoutineOpenFailure(error) else { return }
+        logger.error("\(transport, privacy: .public) open failed: \(error.localizedDescription, privacy: .public)")
     }
 
     private func handleUDPFlow(
@@ -918,8 +912,7 @@ class DNSProxyProvider: NEDNSProxyProvider {
                     return
                 }
 
-                if let readError = readError {
-                    self.logger.debug("UDP read failed: \(readError.localizedDescription, privacy: .public)")
+                if readError != nil {
                     flow.closeReadWithError(nil)
                     flow.closeWriteWithError(nil)
                     return
@@ -1815,7 +1808,6 @@ class DNSProxyProvider: NEDNSProxyProvider {
         for proxy in idle {
             proxy.stop()
         }
-        logger.debug("Closed \(idle.count, privacy: .public) idle DNS-over-TCP proxies")
     }
 
     /// A DNS-over-TCP proxy keeps the route chosen when its flow opened, so a
@@ -1828,8 +1820,6 @@ class DNSProxyProvider: NEDNSProxyProvider {
             for proxy in proxies {
                 proxy.stop()
             }
-            self.logger.debug(
-                "Closed \(proxies.count, privacy: .public) DNS-over-TCP proxies after a routing change")
         }
     }
 
@@ -2184,6 +2174,5 @@ class DNSProxyProvider: NEDNSProxyProvider {
         // Cancel after removing the observer so no wake-up scheduled during
         // teardown can still reach the worker.
         wakeupCoalescer.cancel()
-        logger.debug("Bypass notifications observer stopped")
     }
 }
