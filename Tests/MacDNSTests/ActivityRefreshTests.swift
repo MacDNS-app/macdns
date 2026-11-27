@@ -137,6 +137,11 @@ final class ActivityRefreshTests: XCTestCase {
         let manualBefore = refreshes.filter { !$0 }.count
         host.rootView = page(range: .week, clears: 0)
         try await waitUntil { refreshes.filter { !$0 }.count == manualBefore + 1 }
+
+        // Drain the close occlusion event before the next test shares SettingsWindowController.shared.
+        window.close()
+        try await waitUntil { !SettingsWindowController.shared.isOnScreen }
+        self.window = nil
     }
 
     func testAutomaticRefreshSkipsSpinnerAndUnchangedPayloadsWhileManualRefreshSupersedes() throws {
