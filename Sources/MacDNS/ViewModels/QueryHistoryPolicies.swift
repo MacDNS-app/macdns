@@ -216,3 +216,55 @@ struct QueryHistoryClearState: Equatable {
         failureMessage = nil
     }
 }
+
+/// Tracks Activity's top-blocked loads so automatic ticks neither overlap nor
+/// toggle the toolbar spinner, and unchanged rows do not republish.
+struct ActivityStatsRefreshState: Equatable {
+    private(set) var domains: [BlockedDomain] = []
+    private(set) var isLoading = false
+    private(set) var issue: QueryHistoryLoad<[BlockedDomain]>?
+    private var inFlight = false
+    private var generation: UInt64 = 0
+
+    /// Starts a load and returns its generation, or `nil` when an automatic
+    /// tick finds another load already running.
+    mutating func begin(isAutomatic: Bool) -> UInt64? {
+        if isAutomatic && inFlight { return nil }
+        inFlight = true
+        if !isAutomatic { isLoading = true }
+        generation &+= 1
+        return generation
+    }
+
+    /// Applies `load` when `loadGeneration` is still current. Returns whether
+    /// `domains` changed in displayed content.
+    @discardableResult
+    mutating func finish(
+        _ load: QueryHistoryLoad<[BlockedDomain]>,
+        for loadGeneration: UInt64
+    ) -> Bool {
+        guard loadGeneration == generation else { return false }
+        inFlight = false
+        isLoading = false
+        let nextDomains = load.payload ?? []
+        let nextIssue = load.payload == nil ? load : nil
+        let domainsChanged = !Self.sameRows(domains, nextDomains)
+        if domainsChanged {
+            domains = nextDomains
+        }
+        if issue != nextIssue {
+            issue = nextIssue
+        }
+        return domainsChanged
+    }
+
+    private static func sameRows(_ lhs: [BlockedDomain], _ rhs: [BlockedDomain]) -> Bool {
+        guard lhs.count == rhs.count else { return false }
+        return zip(lhs, rhs).allSatisfy { left, right in
+            left.domain == right.domain
+                && left.matchedRule == right.matchedRule
+                && left.category == right.category
+                && left.blockCount == right.blockCount
+        }
+    }
+}

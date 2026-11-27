@@ -9,10 +9,21 @@ struct ActivitySection: View {
     var onNavigate: (SettingsSection) -> Void = { _ in }
     @State private var showClearConfirmation = false
     @State private var selectedCategory: BlocklistCategory? = nil
-    @State private var timer: Timer? = nil
     @State private var showSuccessBanner = false
     @State private var successMessage = ""
     @State private var bannerGeneration = 0
+
+    struct ReloadKey: Hashable {
+        let range: QueryHistoryRange
+        let clears: Int
+    }
+
+    private var reloadKey: ReloadKey {
+        ReloadKey(
+            range: viewModel.activityRange,
+            clears: viewModel.queryHistoryClear.finishedCount
+        )
+    }
 
     private var filteredStats: [BlockedDomain] {
         let filtered = viewModel.blocklistStats.filter { stat in
@@ -58,18 +69,11 @@ struct ActivitySection: View {
                             symbol: "chart.bar.fill",
                             message: "Nothing blocked in the last \(viewModel.activityRange.periodName)", onAdd: nil)
                     } else {
-                        let maxCount = stats.map(\.blockCount).max() ?? 0
-                        ForEach(Array(stats.enumerated()), id: \.element.id) { index, stat in
-                            if index > 0 {
-                                SettingsDivider()
-                            }
-                            ActivityRow(
-                                stat: stat,
-                                maxCount: maxCount,
-                                canAllow: viewModel.persistedStateAvailability.allowsConfigurationMutation,
-                                onAllow: { allow(stat) }
-                            )
-                        }
+                        ActivityBlockedDomainList(
+                            stats: stats,
+                            canAllow: viewModel.persistedStateAvailability.allowsConfigurationMutation,
+                            onAllow: allow
+                        )
                     }
                 }
             }
@@ -78,28 +82,12 @@ struct ActivitySection: View {
                 canTurnOn: viewModel.persistedStateAvailability.allowsUserEnable,
                 onTurnOn: { viewModel.enableDNS() }
             )
-            .onAppear {
-                if viewModel.agentInstalled {
-                    viewModel.loadBlocklistStats()
-                    startAutoRefresh()
-                }
-            }
-            .onDisappear {
-                stopAutoRefresh()
-            }
-            .onChange(of: viewModel.activityRange) {
-                if viewModel.agentInstalled { viewModel.loadBlocklistStats() }
-            }
-            .onChange(of: viewModel.queryHistoryClear.finishedCount) {
-                if viewModel.agentInstalled { viewModel.loadBlocklistStats() }
-            }
             .clearHistoryConfirmation(isPresented: $showClearConfirmation, viewModel: viewModel)
-            .onChange(of: viewModel.agentInstalled) { _, installed in
-                if installed {
-                    viewModel.loadBlocklistStats()
-                    startAutoRefresh()
-                } else {
-                    stopAutoRefresh()
+            .background {
+                if viewModel.agentInstalled {
+                    QueriesRefreshTasks(reloadKey: reloadKey, interval: .seconds(60)) { automatic in
+                        await viewModel.refreshBlocklistStats(isAutomatic: automatic)
+                    }
                 }
             }
 
@@ -162,19 +150,29 @@ struct ActivitySection: View {
             }
         }
     }
+}
 
-    private func startAutoRefresh() {
-        timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak viewModel] _ in
-            Task { @MainActor in
-                viewModel?.loadBlocklistStats()
+struct ActivityBlockedDomainList: View {
+    let stats: [BlockedDomain]
+    let canAllow: Bool
+    let onAllow: (BlockedDomain) -> Void
+
+    var body: some View {
+        let maxCount = stats.map(\.blockCount).max() ?? 0
+        // Key by domain, not BlockedDomain.id (a fresh UUID per fetch), so refreshes
+        // update rows in place instead of recreating AppKit buttons and leaking
+        // NSKeyValueDependency entries on macOS.
+        ForEach(Array(stats.enumerated()), id: \.element.domain) { index, stat in
+            if index > 0 {
+                SettingsDivider()
             }
+            ActivityRow(
+                stat: stat,
+                maxCount: maxCount,
+                canAllow: canAllow,
+                onAllow: { onAllow(stat) }
+            )
         }
-    }
-
-    private func stopAutoRefresh() {
-        timer?.invalidate()
-        timer = nil
     }
 }
 

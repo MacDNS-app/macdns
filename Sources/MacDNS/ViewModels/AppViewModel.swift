@@ -538,7 +538,7 @@ class AppViewModel: ObservableObject {
     /// Set when the history could not give Activity its list.
     @Published private(set) var blocklistStatsIssue: QueryHistoryLoad<[BlockedDomain]>?
     @Published var activityRange: QueryHistoryRange = .day
-    private var blocklistStatsGeneration: UInt64 = 0
+    private var activityStatsRefresh = ActivityStatsRefreshState()
 
     // MARK: - Lookup History
     @Published private(set) var queryHistoryClear = QueryHistoryClearState()
@@ -3880,21 +3880,32 @@ class AppViewModel: ObservableObject {
     // MARK: - Blocklist Statistics
 
     func loadBlocklistStats() {
-        isLoadingStats = true
-        blocklistStatsGeneration &+= 1
-        let generation = blocklistStatsGeneration
-        let range = activityRange
         Task { [weak self] in
-            let result = await XPCClient.shared.queryHistory(
-                QueryHistoryRequest(.topBlocked(range: .last(range), category: nil, limit: 100)),
-                as: QueryHistoryTopBlocked.self
-            )
-            // A range switch starts a newer load, and an older answer must not replace it.
-            guard let self, generation == self.blocklistStatsGeneration else { return }
-            let load = QueryHistoryLoad(result).map(\.blockedDomains)
-            self.blocklistStats = load.payload ?? []
-            self.blocklistStatsIssue = load.payload == nil ? load : nil
-            self.isLoadingStats = false
+            await self?.refreshBlocklistStats(isAutomatic: false)
+        }
+    }
+
+    func refreshBlocklistStats(isAutomatic: Bool) async {
+        guard let generation = activityStatsRefresh.begin(isAutomatic: isAutomatic) else { return }
+        if isLoadingStats != activityStatsRefresh.isLoading {
+            isLoadingStats = activityStatsRefresh.isLoading
+        }
+        let range = activityRange
+        let result = await XPCClient.shared.queryHistory(
+            QueryHistoryRequest(.topBlocked(range: .last(range), category: nil, limit: 100)),
+            as: QueryHistoryTopBlocked.self
+        )
+        // A range switch starts a newer load, and an older answer must not replace it.
+        let load = QueryHistoryLoad(result).map(\.blockedDomains)
+        let domainsChanged = activityStatsRefresh.finish(load, for: generation)
+        if domainsChanged {
+            blocklistStats = activityStatsRefresh.domains
+        }
+        if blocklistStatsIssue != activityStatsRefresh.issue {
+            blocklistStatsIssue = activityStatsRefresh.issue
+        }
+        if isLoadingStats != activityStatsRefresh.isLoading {
+            isLoadingStats = activityStatsRefresh.isLoading
         }
     }
 
