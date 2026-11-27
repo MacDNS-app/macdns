@@ -3387,7 +3387,7 @@ Used by:
   event-listener 5.4.2
   flate2 1.1.11
   fnv 1.0.7
-  form_urlencoded 1.2.2
+  form_urlencoded 1.2.3
   hashbrown 0.14.5
   hashbrown 0.17.1
   httparse 1.10.1
@@ -3425,7 +3425,7 @@ Used by:
   system-configuration-sys 0.6.0
   system-configuration 0.7.0
   thread_local 1.1.10
-  url 2.5.8
+  url 2.5.9
   uuid 1.29.2
 
                               Apache License
